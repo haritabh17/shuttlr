@@ -167,11 +167,30 @@ export default function TermsPage() {
           </section>
 
           <section>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Automated Decisions</h2>
+            <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+              shuttlrs uses an automated algorithm to select players for courts and assign pairings during sessions.
+              This is based on play count, rest time, skill level, gender, and teammate history. No human reviews
+              these decisions in real time. You can always leave a session if you disagree with an assignment.
+            </p>
+          </section>
+
+          <section>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Contact</h2>
+            <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+              shuttlrs is operated by Haritabh Gupta, based in Dublin, Ireland.
+            </p>
             <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
               Questions, concerns, or data requests? Reach us at{" "}
               <a href="mailto:support@shuttlrs.com" className="text-teal-600 dark:text-teal-400 underline">
                 support@shuttlrs.com
+              </a>.
+              We&apos;ll respond within 30 days.
+            </p>
+            <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+              If you&apos;re not satisfied with our response, you have the right to lodge a complaint with the{" "}
+              <a href="https://www.dataprotection.ie" className="text-teal-600 dark:text-teal-400 underline" target="_blank" rel="noopener noreferrer">
+                Irish Data Protection Commission
               </a>.
             </p>
           </section>
