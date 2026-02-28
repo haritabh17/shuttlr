@@ -142,8 +142,34 @@ Deno.serve(async (req) => {
   }
 
   const results: string[] = [];
+  const MAX_SESSION_MS = 6 * 60 * 60 * 1000; // 6 hours
 
   for (const session of sessions) {
+    // Auto-end sessions running longer than 6 hours
+    const sessionStarted = session.started_at ? new Date(session.started_at).getTime() : null;
+    if (sessionStarted && (Date.now() - sessionStarted) >= MAX_SESSION_MS) {
+      await supabase
+        .from("sessions")
+        .update({
+          status: "ended",
+          ended_at: new Date().toISOString(),
+          current_phase: "idle",
+        })
+        .eq("id", session.id);
+
+      await supabase.from("events").insert({
+        club_id: session.club_id,
+        session_id: session.id,
+        actor_id: null,
+        actor_type: "system",
+        event_type: "session_auto_ended",
+        payload: { reason: "6h time limit", duration_hours: 6 },
+      });
+
+      results.push(`${session.id}: auto-ended (6h limit)`);
+      continue;
+    }
+
     const phase = session.current_phase || "idle";
     const roundStarted = session.current_round_started_at
       ? new Date(session.current_round_started_at).getTime()

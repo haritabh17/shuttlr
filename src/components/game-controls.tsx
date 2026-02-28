@@ -36,7 +36,8 @@ export function GameControls({
       updates.current_phase = "idle"; // worker will pick this up and run first selection
     }
     if (newStatus === "running" && (session.status === "paused" || session.status === "ended")) {
-      // Resume: reset round timer from now, clear ended_at
+      // Resume: reset round timer and started_at from now, clear ended_at
+      updates.started_at = new Date().toISOString();
       updates.current_round_started_at = new Date().toISOString();
       updates.ended_at = null;
     }
