@@ -124,7 +124,7 @@ export default function TermsPage() {
               <li><strong>Access</strong> — view and download your personal data at any time via your profile.</li>
               <li><strong>Rectification</strong> — edit your profile information at any time.</li>
               <li><strong>Erasure</strong> — request deletion of your account and all associated data.</li>
-              <li><strong>Portability</strong> — request a copy of your data in a machine-readable format.</li>
+              <li><strong>Portability</strong> — request a copy of your data by emailing us.</li>
               <li><strong>Object</strong> — object to processing based on legitimate interest.</li>
               <li><strong>Withdraw consent</strong> — turn off push notifications at any time.</li>
             </ul>

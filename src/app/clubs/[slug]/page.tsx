@@ -8,6 +8,7 @@ import { AddMemberButton } from "@/components/add-member-button";
 import { EventLog } from "@/components/event-log";
 import { DeletedSessions } from "@/components/deleted-sessions";
 import { ClubVisibility } from "@/components/club-visibility";
+import { LeaveClubButton } from "@/components/leave-club-button";
 
 export default async function ClubPage({
   params,
@@ -172,6 +173,13 @@ export default async function ClubPage({
           </summary>
           <EventLog clubId={club.id} />
         </details>
+
+        {/* Leave Club — only for non-managers */}
+        {!isManager && (
+          <div className="border-t border-zinc-200 pt-6 dark:border-zinc-800">
+            <LeaveClubButton clubId={club.id} clubName={club.name} membershipId={membership.id} />
+          </div>
+        )}
       </main>
     </div>
   );

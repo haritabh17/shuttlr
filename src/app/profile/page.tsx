@@ -10,6 +10,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [profile, setProfile] = useState({
     full_name: "",
     gender: "",
@@ -154,6 +155,33 @@ export default function ProfilePage() {
             </Link>
           </div>
         </form>
+
+        {/* Delete Account */}
+        <div className="mt-12 border-t border-red-200 pt-6 dark:border-red-900">
+          <h2 className="text-lg font-semibold text-red-600 dark:text-red-400">Danger Zone</h2>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            Permanently delete your account and all associated data. This removes you from all clubs,
+            deletes your profile, and cannot be undone.
+          </p>
+          <button
+            onClick={async () => {
+              if (!confirm("Are you sure you want to delete your account? This is permanent and cannot be undone.")) return;
+              if (!confirm("All your data will be deleted — clubs, sessions, everything. Last chance to cancel.")) return;
+              setDeleting(true);
+              const res = await fetch("/api/account/delete", { method: "POST" });
+              if (res.ok) {
+                router.push("/login");
+              } else {
+                alert("Failed to delete account. Please try again or contact support@shuttlrs.com.");
+                setDeleting(false);
+              }
+            }}
+            disabled={deleting}
+            className="mt-3 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:opacity-40 dark:border-red-800 dark:bg-red-950 dark:text-red-400 dark:hover:bg-red-900"
+          >
+            {deleting ? "Deleting account..." : "Delete my account"}
+          </button>
+        </div>
       </main>
     </div>
   );
