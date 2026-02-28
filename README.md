@@ -4,6 +4,8 @@ Open-source badminton club management — session scheduling, court rotation, an
 
 **Live:** [shuttlrs.com](https://shuttlrs.com) · **License:** Apache 2.0
 
+![Shuttlr Login](screenshots/login.png)
+
 ## What it does
 
 Shuttlr takes the chaos out of running badminton club sessions. No more WhatsApp arguments about who plays next.
@@ -15,6 +17,14 @@ Shuttlr takes the chaos out of running badminton club sessions. No more WhatsApp
 - **Club management** — members, roles, nicknames, skill levels
 - **Works on phones** — PWA with home screen install support
 
+## How the selection works
+
+The algorithm optimizes for:
+1. **Fairness** — players with fewer games get priority
+2. **Rest** — longest-waiting players selected first
+3. **Balance** — mixed-gender courts when possible, level variance minimized
+4. **Variety** — teammate repeat penalty to avoid same pairings
+
 ## Tech stack
 
 - **Frontend:** Next.js 15 (App Router), TypeScript, Tailwind CSS
@@ -22,6 +32,7 @@ Shuttlr takes the chaos out of running badminton club sessions. No more WhatsApp
 - **Scheduling:** pg_cron → Edge Function (session-tick) every 10s
 - **Push:** Web Push API with VAPID keys
 - **Hosting:** Vercel
+- **CI/CD:** GitHub Actions (main → beta, production → prod)
 
 ## Architecture
 
@@ -35,18 +46,11 @@ Browser ←→ Next.js (Vercel) ←→ Supabase (Postgres + Auth + Realtime)
                               Push notification → /api/push/send → Web Push
 ```
 
-The selection algorithm optimizes for:
-1. **Fairness** — players with fewer games get priority
-2. **Rest** — longest-waiting players selected first
-3. **Balance** — mixed-gender courts when possible, level variance minimized
-4. **Variety** — teammate repeat penalty to avoid same pairings
-
-## Local development
+## Self-hosting
 
 ```bash
 # Prerequisites: Node.js 18+, Supabase CLI
 
-# Clone and install
 git clone https://github.com/haritabh17/shuttlr.git
 cd shuttlr
 npm install
@@ -75,7 +79,7 @@ npm run dev
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | VAPID public key for Web Push |
 | `VAPID_PRIVATE_KEY` | VAPID private key (server-side only) |
 | `VAPID_MAILTO` | Contact email for VAPID (e.g. `mailto:you@example.com`) |
-| `ALLOWED_EMAILS` | Comma-separated email whitelist for beta access |
+| `ALLOWED_EMAILS` | Comma-separated email whitelist (beta only) |
 
 ## Project structure
 
@@ -101,17 +105,6 @@ supabase/
 scripts/
 └── seed.ts              # Test data seeder
 ```
-
-## Pricing
-
-Shuttlr is **open source** and **free to use**. Self-host it yourself or use the managed version at [shuttlrs.com](https://shuttlrs.com).
-
-| Plan | What you get | Price |
-|------|-------------|-------|
-| **Free** | 4 sessions/month, all features | €0 |
-| **Pro** | Unlimited sessions, priority support | €14.99/year |
-
-Pro plans help cover hosting costs and fund continued development.
 
 ## Contributing
 
