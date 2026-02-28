@@ -95,7 +95,7 @@ export default async function ClubPage({
   // Fetch subscription and usage
   const { data: subscription } = await (supabase as any)
     .from("club_subscriptions")
-    .select("plan, status, trial_ends_at, billing_cycle, current_period_end")
+    .select("plan, status, trial_ends_at, billing_cycle, current_period_end, stripe_customer_id")
     .eq("club_id", club.id)
     .single();
 
