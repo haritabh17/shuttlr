@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 
@@ -9,6 +9,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Show error from URL params (e.g. access_denied from middleware)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlError = params.get("error");
+    if (urlError === "access_denied") {
+      setError("Access denied. Your email is not on the beta whitelist.");
+    } else if (urlError === "auth_failed") {
+      setError("Authentication failed. Please try again.");
+    }
+  }, []);
 
   const supabase = createClient();
 
@@ -99,10 +110,10 @@ export default function LoginPage() {
         <div className="w-full max-w-sm space-y-6">
           <div>
             <h2 className="text-2xl font-bold text-white">
-              Welcome back
+              Sign in
             </h2>
             <p className="mt-1 text-sm text-zinc-500">
-              Sign in to manage your clubs and sessions
+              Manage your clubs and sessions
             </p>
           </div>
 
