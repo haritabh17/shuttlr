@@ -53,8 +53,8 @@ If you'd rather not deal with hosting, use the managed version at [shuttlrs.com]
 You'll need Node.js 18+ and the [Supabase CLI](https://supabase.com/docs/guides/cli).
 
 ```bash
-git clone https://github.com/haritabh17/shuttlr.git
-cd shuttlr
+git clone https://github.com/haritabh17/shuttlrs.git
+cd shuttlrs
 npm install
 
 supabase start
