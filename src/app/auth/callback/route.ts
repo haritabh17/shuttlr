@@ -21,7 +21,8 @@ export async function GET(request: Request) {
         .map((e) => e.trim().toLowerCase())
         .filter(Boolean);
 
-      if (allowedEmails.length > 0 && (!user?.email || !allowedEmails.includes(user.email.toLowerCase()))) {
+      const isBeta = new URL(request.url).hostname.includes("beta.");
+      if (isBeta && allowedEmails.length > 0 && (!user?.email || !allowedEmails.includes(user.email.toLowerCase()))) {
         await supabase.auth.signOut();
         return NextResponse.redirect(`${origin}/login?error=access_denied`);
       }
