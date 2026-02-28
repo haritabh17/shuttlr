@@ -172,7 +172,8 @@ export default function ProfilePage() {
               if (res.ok) {
                 router.push("/login");
               } else {
-                alert("Failed to delete account. Please try again or contact support@shuttlrs.com.");
+                const data = await res.json().catch(() => null);
+                alert(data?.error || "Failed to delete account. Please try again or contact support@shuttlrs.com.");
                 setDeleting(false);
               }
             }}

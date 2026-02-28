@@ -17,8 +17,24 @@ export function LeaveClubButton({ clubId, clubName, membershipId, isManager }: L
   const [loading, setLoading] = useState(false);
 
   async function handleLeave() {
-    const managerWarning = isManager ? "\n\n⚠️ You are a manager. The club will continue without you." : "";
-    if (!confirm(`Are you sure you want to leave ${clubName}? You'll lose access to all sessions and data in this club.${managerWarning}`)) return;
+    if (isManager) {
+      // Check if there's another manager
+      const { data: managers } = await supabase
+        .from("club_members")
+        .select("id")
+        .eq("club_id", clubId)
+        .eq("role", "manager")
+        .eq("status", "active");
+
+      if ((managers?.length ?? 0) <= 1) {
+        alert("You're the only manager. Promote another member to manager before leaving.");
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to leave ${clubName}?\n\n⚠️ You are a manager. The club will continue without you.`)) return;
+    } else {
+      if (!confirm(`Are you sure you want to leave ${clubName}? You'll lose access to all sessions and data in this club.`)) return;
+    }
     if (!confirm("This cannot be undone. Are you really sure?")) return;
 
     setLoading(true);
