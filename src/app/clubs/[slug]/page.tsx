@@ -9,6 +9,7 @@ import { EventLog } from "@/components/event-log";
 import { DeletedSessions } from "@/components/deleted-sessions";
 import { ClubVisibility } from "@/components/club-visibility";
 import { LeaveClubButton } from "@/components/leave-club-button";
+import { UpgradeButton } from "@/components/upgrade-button";
 
 export default async function ClubPage({
   params,
@@ -92,6 +93,21 @@ export default async function ClubPage({
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
+  // Fetch subscription and usage
+  const { data: subscription } = await (supabase as any)
+    .from("club_subscriptions")
+    .select("plan, status, trial_ends_at, billing_cycle, current_period_end")
+    .eq("club_id", club.id)
+    .single();
+
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const { data: usage } = await (supabase as any)
+    .from("session_usage")
+    .select("session_count")
+    .eq("club_id", club.id)
+    .eq("month", currentMonth)
+    .single();
+
   // Fetch soft-deleted sessions (within 1 month) for managers
   const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { data: deletedSessions } = isManager
@@ -139,6 +155,15 @@ export default async function ClubPage({
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-8 space-y-8">
+        {/* Subscription Banner */}
+        {isManager && (
+          <UpgradeButton
+            clubId={club.id}
+            subscription={subscription}
+            sessionCount={usage?.session_count ?? 0}
+          />
+        )}
+
         {/* Sessions Section */}
         <section>
           <div className="mb-4 flex items-center justify-between">
