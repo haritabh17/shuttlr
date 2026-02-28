@@ -1,8 +1,8 @@
 # 🏸 Shuttlr
 
-Badminton club management — session scheduling, court rotation, and automated player selection.
+Open-source badminton club management — session scheduling, court rotation, and automated player selection.
 
-**Live:** [shuttlrs.com](https://shuttlrs.com)
+**Live:** [shuttlrs.com](https://shuttlrs.com) · **License:** Apache 2.0
 
 ## What it does
 
@@ -102,6 +102,21 @@ scripts/
 └── seed.ts              # Test data seeder
 ```
 
+## Pricing
+
+Shuttlr is **open source** and **free to use**. Self-host it yourself or use the managed version at [shuttlrs.com](https://shuttlrs.com).
+
+| Plan | What you get | Price |
+|------|-------------|-------|
+| **Free** | 4 sessions/month, all features | €0 |
+| **Pro** | Unlimited sessions, priority support | €14.99/year |
+
+Pro plans help cover hosting costs and fund continued development.
+
+## Contributing
+
+Contributions are welcome! Open an issue or submit a PR.
+
 ## License
 
-Private — not open source (yet).
+Apache License 2.0 — see [LICENSE](LICENSE) for details.
