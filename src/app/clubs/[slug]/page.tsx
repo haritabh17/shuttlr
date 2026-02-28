@@ -7,7 +7,6 @@ import { CreateSessionButton } from "@/components/create-session-button";
 import { AddMemberButton } from "@/components/add-member-button";
 import { EventLog } from "@/components/event-log";
 import { DeletedSessions } from "@/components/deleted-sessions";
-import { ClubVisibility } from "@/components/club-visibility";
 import { LeaveClubButton } from "@/components/leave-club-button";
 import { UpgradeButton } from "@/components/upgrade-button";
 
@@ -143,13 +142,7 @@ export default async function ClubPage({
                 </p>
               )}
             </div>
-            {isManager ? (
-              <ClubVisibility clubId={club.id} currentVisibility={club.visibility} />
-            ) : (
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600 capitalize dark:bg-zinc-800 dark:text-zinc-400">
-                {club.visibility}
-              </span>
-            )}
+
           </div>
         </div>
       </header>
