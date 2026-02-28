@@ -2,7 +2,7 @@
 
 Badminton club management — session scheduling, court rotation, and automated player selection.
 
-**Live:** [beta.shuttlrs.com](https://beta.shuttlrs.com)
+**Live:** [shuttlrs.com](https://shuttlrs.com)
 
 ## What it does
 
