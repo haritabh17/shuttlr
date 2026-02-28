@@ -1,36 +1,107 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏸 Shuttlr
 
-## Getting Started
+Badminton club management — session scheduling, court rotation, and automated player selection.
 
-First, run the development server:
+**Live:** [beta.shuttlrs.com](https://beta.shuttlrs.com)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## What it does
+
+Shuttlr takes the chaos out of running badminton club sessions. No more WhatsApp arguments about who plays next.
+
+- **Automated court rotation** — fair player selection based on play count, rest time, and teammate history
+- **Real-time updates** — see court assignments live as they happen
+- **Push notifications** — get notified when you're up next
+- **Session management** — configurable play/rest times, pause/resume, round controls
+- **Club management** — members, roles, nicknames, skill levels
+- **Works on phones** — PWA with home screen install support
+
+## Tech stack
+
+- **Frontend:** Next.js 15 (App Router), TypeScript, Tailwind CSS
+- **Backend:** Supabase (Postgres, Auth, Realtime, Edge Functions)
+- **Scheduling:** pg_cron → Edge Function (session-tick) every 10s
+- **Push:** Web Push API with VAPID keys
+- **Hosting:** Vercel
+
+## Architecture
+
+```
+Browser ←→ Next.js (Vercel) ←→ Supabase (Postgres + Auth + Realtime)
+                                      ↑
+                              pg_cron → Edge Function (session-tick)
+                                      ↓
+                              Selection algorithm → Court assignments
+                                      ↓
+                              Push notification → /api/push/send → Web Push
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The selection algorithm optimizes for:
+1. **Fairness** — players with fewer games get priority
+2. **Rest** — longest-waiting players selected first
+3. **Balance** — mixed-gender courts when possible, level variance minimized
+4. **Variety** — teammate repeat penalty to avoid same pairings
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Local development
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Prerequisites: Node.js 18+, Supabase CLI
 
-## Learn More
+# Clone and install
+git clone https://github.com/haritabh17/shuttlr.git
+cd shuttlr
+npm install
 
-To learn more about Next.js, take a look at the following resources:
+# Set up Supabase locally
+supabase start
+cp .env.local.example .env.local  # fill in your keys
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Push migrations
+supabase db push
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Seed test data (optional)
+npx tsx scripts/seed.ts
 
-## Deploy on Vercel
+# Run dev server
+npm run dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Environment variables
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side only) |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | VAPID public key for Web Push |
+| `VAPID_PRIVATE_KEY` | VAPID private key (server-side only) |
+| `VAPID_MAILTO` | Contact email for VAPID (e.g. `mailto:you@example.com`) |
+| `ALLOWED_EMAILS` | Comma-separated email whitelist for beta access |
+
+## Project structure
+
+```
+src/
+├── app/
+│   ├── api/              # API routes (push, members, sessions, courts)
+│   ├── auth/             # OAuth callback, signout
+│   ├── clubs/[slug]/     # Club page + session pages
+│   ├── login/            # Login page
+│   ├── profile/          # Profile editor
+│   └── page.tsx          # Home (club list)
+├── components/           # UI components
+├── lib/
+│   ├── selection.ts      # Player selection algorithm
+│   └── supabase/         # Supabase client helpers
+public/
+├── sw.js                 # Service worker for push notifications
+├── manifest.json         # PWA manifest
+supabase/
+├── functions/            # Edge Functions (session-tick)
+├── migrations/           # Database migrations
+scripts/
+└── seed.ts              # Test data seeder
+```
+
+## License
+
+Private — not open source (yet).
