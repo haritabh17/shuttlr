@@ -40,7 +40,11 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/terms") ||
     request.nextUrl.pathname.startsWith("/consent");
 
+  // Beta whitelist only applies on beta.shuttlrs.com
+  const isBeta = request.nextUrl.hostname.includes("beta.");
+
   if (
+    isBeta &&
     allowedEmails.length > 0 &&
     user?.email &&
     !allowedEmails.includes(user.email.toLowerCase()) &&
