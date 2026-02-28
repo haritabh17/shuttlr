@@ -11,11 +11,13 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   const supabase = createClient();
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
+    if (!agreed) { setError("You must agree to the Terms & Privacy Policy"); return; }
     setError(null);
     setLoading(true);
 
@@ -37,6 +39,7 @@ export default function SignupPage() {
   }
 
   async function handleGoogleLogin() {
+    if (!agreed) { setError("You must agree to the Terms & Privacy Policy"); return; }
     setError(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -172,13 +175,28 @@ export default function SignupPage() {
             />
           </div>
 
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-0.5 rounded border-zinc-300 dark:border-zinc-700"
+            />
+            <span className="text-zinc-500 dark:text-zinc-400">
+              I agree to the{" "}
+              <Link href="/terms" target="_blank" className="font-medium text-zinc-900 hover:underline dark:text-zinc-100">
+                Terms & Privacy Policy
+              </Link>
+            </span>
+          </label>
+
           {error && (
             <p className="text-sm text-red-500">{error}</p>
           )}
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !agreed}
             className="w-full rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
             {loading ? "Creating account..." : "Sign up"}

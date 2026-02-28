@@ -203,6 +203,12 @@ export default function LoginPage() {
               Sign up
             </Link>
           </p>
+          <p className="text-center text-xs text-zinc-600">
+            By signing in, you agree to our{" "}
+            <Link href="/terms" className="text-teal-500 hover:text-teal-400">
+              Terms & Privacy Policy
+            </Link>
+          </p>
         </div>
       </div>
     </div>
