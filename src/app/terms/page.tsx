@@ -167,6 +167,20 @@ export default function TermsPage() {
           </section>
 
           <section>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Subscriptions & Payments</h2>
+            <ul className="mt-2 space-y-1.5 text-sm text-zinc-700 dark:text-zinc-300 list-disc pl-5">
+              <li>New clubs get a <strong>3-month free trial</strong> with unlimited sessions. After that, clubs are limited to 4 sessions per month on the free plan.</li>
+              <li>The Pro plan removes session limits. It is available as a monthly (€2.99/month) or yearly (€24.99/year) subscription.</li>
+              <li>Subscriptions <strong>auto-renew</strong> at the end of each billing period unless you cancel before the renewal date.</li>
+              <li>You can cancel at any time from your club settings. Cancellation takes effect at the end of the current billing period — you keep access until then.</li>
+              <li>Payments are processed by <strong>Stripe</strong>. We never see or store your card details.</li>
+              <li>Refunds are handled on a case-by-case basis. Contact <a href="mailto:support@shuttlrs.com" className="text-teal-600 dark:text-teal-400 underline">support@shuttlrs.com</a> if you believe you were charged in error.</li>
+              <li>Under EU consumer law, you have a 14-day right of withdrawal for digital services. By subscribing and using the service immediately, you acknowledge that you waive this right.</li>
+              <li>We may change pricing with 30 days&apos; notice. Existing subscriptions are honoured until renewal.</li>
+            </ul>
+          </section>
+
+          <section>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Automated Decisions</h2>
             <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
               shuttlrs uses an automated algorithm to select players for courts and assign pairings during sessions.

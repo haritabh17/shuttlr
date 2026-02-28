@@ -22,6 +22,34 @@ export function CreateSessionButton({ clubId, clubName }: { clubId: string; club
     setError(null);
     setLoading(true);
 
+    // Check session limits
+    const { data: sub } = await (supabase as any)
+      .from("club_subscriptions")
+      .select("plan, status, trial_ends_at")
+      .eq("club_id", clubId)
+      .single();
+
+    const isTrialing = sub?.status === "trialing" && sub?.trial_ends_at && new Date(sub.trial_ends_at) > new Date();
+    const isPro = sub?.plan === "pro" && sub?.status === "active";
+
+    if (!isTrialing && !isPro) {
+      // Free plan — check monthly limit
+      const currentMonth = new Date().toISOString().slice(0, 7); // '2026-02'
+      const { data: usage } = await (supabase as any)
+        .from("session_usage")
+        .select("session_count")
+        .eq("club_id", clubId)
+        .eq("month", currentMonth)
+        .single();
+
+      const FREE_LIMIT = 4;
+      if ((usage?.session_count ?? 0) >= FREE_LIMIT) {
+        setError(`Free plan limit reached (${FREE_LIMIT} sessions/month). Upgrade to Pro for unlimited sessions.`);
+        setLoading(false);
+        return;
+      }
+    }
+
     const { error: err } = await supabase.from("sessions").insert({
       club_id: clubId,
       name: name || "Session",
