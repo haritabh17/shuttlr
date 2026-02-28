@@ -42,6 +42,19 @@ export default function TermsPage() {
               <li><strong>Club data:</strong> membership, role (player/manager), skill level, gender (used for mixed-gender court balancing), club nickname.</li>
               <li><strong>Session data:</strong> game history, play count, court assignments.</li>
               <li><strong>Push notifications:</strong> browser push subscription tokens, if you opt in.</li>
+              <li><strong>Usage data:</strong> session counts per club (for billing purposes, when applicable).</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Legal Basis for Processing</h2>
+            <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+              Under the GDPR, we process your data on the following grounds:
+            </p>
+            <ul className="mt-2 space-y-1.5 text-sm text-zinc-700 dark:text-zinc-300 list-disc pl-5">
+              <li><strong>Contract:</strong> account info, club data, and session data are necessary to provide the service you signed up for.</li>
+              <li><strong>Consent:</strong> push notifications are opt-in. You can revoke consent at any time in your browser settings.</li>
+              <li><strong>Legitimate interest:</strong> basic analytics and usage tracking to maintain and improve the service.</li>
             </ul>
           </section>
 
@@ -51,20 +64,45 @@ export default function TermsPage() {
               <li>To run the app — court rotation, player selection, session management.</li>
               <li>To send push notifications about your game assignments (only if you enable them).</li>
               <li>To display advertisements within the app.</li>
+              <li>To process payments if you subscribe to a paid plan (handled by Stripe).</li>
               <li>We do not sell your personal data to third parties.</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Where Your Data Lives</h2>
-            <ul className="mt-2 space-y-1.5 text-sm text-zinc-700 dark:text-zinc-300 list-disc pl-5">
-              <li><strong>Database:</strong> Supabase (EU-West region, hosted on AWS).</li>
-              <li><strong>Hosting:</strong> Vercel (global edge network).</li>
-              <li><strong>Authentication:</strong> Supabase Auth with Google OAuth.</li>
-            </ul>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Third-Party Services</h2>
             <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
-              We do not transfer your data outside of what&apos;s necessary to run these services.
+              We use the following third-party services to operate shuttlrs. Each acts as a data processor under GDPR:
             </p>
+            <ul className="mt-2 space-y-1.5 text-sm text-zinc-700 dark:text-zinc-300 list-disc pl-5">
+              <li><strong>Supabase</strong> (EU-West, AWS) — database, authentication, real-time features.</li>
+              <li><strong>Vercel</strong> (global edge network) — hosting and serverless functions.</li>
+              <li><strong>Google</strong> — OAuth sign-in (we receive your name, email, and profile picture).</li>
+              <li><strong>Stripe</strong> — payment processing (we never see or store your card details).</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Cookies</h2>
+            <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+              shuttlrs uses essential cookies for authentication (keeping you logged in). We do not use
+              tracking cookies or third-party analytics cookies. Stripe may set cookies during the payment
+              process — see{" "}
+              <a href="https://stripe.com/privacy" className="text-teal-600 dark:text-teal-400 underline" target="_blank" rel="noopener noreferrer">
+                Stripe&apos;s privacy policy
+              </a>{" "}
+              for details.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Data Retention</h2>
+            <ul className="mt-2 space-y-1.5 text-sm text-zinc-700 dark:text-zinc-300 list-disc pl-5">
+              <li>Your account data is kept as long as your account is active.</li>
+              <li>If you delete your account, we remove all your personal data within 30 days.</li>
+              <li>Session history and game data associated with deleted accounts is anonymised, not deleted, to preserve club statistics.</li>
+              <li>Push notification tokens are deleted immediately when you unsubscribe or delete your account.</li>
+            </ul>
           </section>
 
           <section>
@@ -78,11 +116,24 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Your Rights</h2>
+            <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+              Under GDPR, you have the right to:
+            </p>
             <ul className="mt-2 space-y-1.5 text-sm text-zinc-700 dark:text-zinc-300 list-disc pl-5">
-              <li>You can view and edit your profile at any time.</li>
-              <li>You can leave any club at any time.</li>
-              <li>You can request deletion of your account and all associated data.</li>
+              <li><strong>Access</strong> — view and download your personal data at any time via your profile.</li>
+              <li><strong>Rectification</strong> — edit your profile information at any time.</li>
+              <li><strong>Erasure</strong> — request deletion of your account and all associated data.</li>
+              <li><strong>Portability</strong> — request a copy of your data in a machine-readable format.</li>
+              <li><strong>Object</strong> — object to processing based on legitimate interest.</li>
+              <li><strong>Withdraw consent</strong> — turn off push notifications at any time.</li>
             </ul>
+            <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+              To exercise any of these rights, email us at{" "}
+              <a href="mailto:support@shuttlrs.com" className="text-teal-600 dark:text-teal-400 underline">
+                support@shuttlrs.com
+              </a>.
+              We&apos;ll respond within 30 days.
+            </p>
           </section>
 
           <section>
@@ -111,6 +162,16 @@ export default function TermsPage() {
               shuttlrs is provided &quot;as is&quot;. We do our best to keep it running and your data safe,
               but we can&apos;t guarantee 100% uptime or zero bugs. We&apos;re not liable for any damages
               arising from your use of the service.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Contact</h2>
+            <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+              Questions, concerns, or data requests? Reach us at{" "}
+              <a href="mailto:support@shuttlrs.com" className="text-teal-600 dark:text-teal-400 underline">
+                support@shuttlrs.com
+              </a>.
             </p>
           </section>
         </div>
