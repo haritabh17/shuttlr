@@ -1,115 +1,88 @@
 # 🏸 Shuttlr
 
-Open-source badminton club management — session scheduling, court rotation, and automated player selection.
+If you run a badminton club, you know the drill. Twenty people show up, four courts, and someone has to figure out who plays next. Usually it's a whiteboard, a peg board, or a WhatsApp argument.
 
-**Live:** [shuttlrs.com](https://shuttlrs.com) · **License:** Apache 2.0
+Shuttlr handles all of that. Court rotation, player selection, round timers — the whole thing runs itself so you can actually play.
 
-![Shuttlr Login](screenshots/login.png)
+**Try it:** [shuttlrs.com](https://shuttlrs.com)
 
-## What it does
+---
 
-Shuttlr takes the chaos out of running badminton club sessions. No more WhatsApp arguments about who plays next.
+## What it looks like
 
-- **Automated court rotation** — fair player selection based on play count, rest time, and teammate history
-- **Real-time updates** — see court assignments live as they happen
-- **Push notifications** — get notified when you're up next
-- **Session management** — configurable play/rest times, pause/resume, round controls
-- **Club management** — members, roles, nicknames, skill levels
-- **Works on phones** — PWA with home screen install support
+### Your clubs at a glance
 
-## How the selection works
+![Home](screenshots/home.png)
 
-The algorithm optimizes for:
-1. **Fairness** — players with fewer games get priority
-2. **Rest** — longest-waiting players selected first
-3. **Balance** — mixed-gender courts when possible, level variance minimized
-4. **Variety** — teammate repeat penalty to avoid same pairings
+### Managing a club — members, sessions, roles
 
-## Tech stack
+![Club](screenshots/club.png)
 
-- **Frontend:** Next.js 15 (App Router), TypeScript, Tailwind CSS
-- **Backend:** Supabase (Postgres, Auth, Realtime, Edge Functions)
-- **Scheduling:** pg_cron → Edge Function (session-tick) every 10s
-- **Push:** Web Push API with VAPID keys
-- **Hosting:** Vercel
-- **CI/CD:** GitHub Actions (main → beta, production → prod)
+### A session in action — courts, timer, player pool
 
-## Architecture
+![Session](screenshots/session.png)
 
-```
-Browser ←→ Next.js (Vercel) ←→ Supabase (Postgres + Auth + Realtime)
-                                      ↑
-                              pg_cron → Edge Function (session-tick)
-                                      ↓
-                              Selection algorithm → Court assignments
-                                      ↓
-                              Push notification → /api/push/send → Web Push
-```
+### Sign in
+
+![Login](screenshots/login.png)
+
+---
+
+## How it works
+
+A manager creates a session, adds players, and hits start. From there:
+
+1. The selection algorithm picks who plays on which court
+2. A countdown timer runs for the configured play time
+3. When time's up, there's an optional rest period
+4. New courts are assigned automatically — players who've waited longest go first
+5. Everyone gets a push notification when they're up
+
+The algorithm tries to be fair about it. It tracks how many games each player has had, avoids repeating the same pairings, balances skill levels across courts, and mixes genders when possible. Not perfect, but way better than a whiteboard.
+
+Sessions auto-end after 6 hours. If something goes wrong, managers can pause, resume, or end early.
+
+## Open source
+
+The whole thing is open source under Apache 2.0. You can self-host it, fork it, modify it — whatever you want.
+
+If you'd rather not deal with hosting, use the managed version at [shuttlrs.com](https://shuttlrs.com). A paid tier is coming that'll help cover hosting costs and fund development.
 
 ## Self-hosting
 
-```bash
-# Prerequisites: Node.js 18+, Supabase CLI
+You'll need Node.js 18+ and the [Supabase CLI](https://supabase.com/docs/guides/cli).
 
+```bash
 git clone https://github.com/haritabh17/shuttlr.git
 cd shuttlr
 npm install
 
-# Set up Supabase locally
 supabase start
-cp .env.local.example .env.local  # fill in your keys
+cp .env.local.example .env.local  # fill in your Supabase keys
 
-# Push migrations
 supabase db push
-
-# Seed test data (optional)
-npx tsx scripts/seed.ts
-
-# Run dev server
 npm run dev
 ```
 
-## Environment variables
+### Environment variables
 
-| Variable | Description |
+| Variable | What it does |
 |----------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side only) |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | VAPID public key for Web Push |
-| `VAPID_PRIVATE_KEY` | VAPID private key (server-side only) |
-| `VAPID_MAILTO` | Contact email for VAPID (e.g. `mailto:you@example.com`) |
-| `ALLOWED_EMAILS` | Comma-separated email whitelist (beta only) |
+| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service key (server only) |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | For push notifications |
+| `VAPID_PRIVATE_KEY` | Push notification private key (server only) |
+| `VAPID_MAILTO` | Contact email for VAPID |
 
-## Project structure
+## Tech stack
 
-```
-src/
-├── app/
-│   ├── api/              # API routes (push, members, sessions, courts)
-│   ├── auth/             # OAuth callback, signout
-│   ├── clubs/[slug]/     # Club page + session pages
-│   ├── login/            # Login page
-│   ├── profile/          # Profile editor
-│   └── page.tsx          # Home (club list)
-├── components/           # UI components
-├── lib/
-│   ├── selection.ts      # Player selection algorithm
-│   └── supabase/         # Supabase client helpers
-public/
-├── sw.js                 # Service worker for push notifications
-├── manifest.json         # PWA manifest
-supabase/
-├── functions/            # Edge Functions (session-tick)
-├── migrations/           # Database migrations
-scripts/
-└── seed.ts              # Test data seeder
-```
+Next.js 15, TypeScript, Tailwind, Supabase (Postgres + Auth + Realtime + Edge Functions), Vercel, Web Push API. Court selection runs via pg_cron → Edge Function every 10 seconds.
 
 ## Contributing
 
-Contributions are welcome! Open an issue or submit a PR.
+PRs and issues welcome. If you run a badminton club and something doesn't work the way you'd expect, open an issue — that's the most useful feedback.
 
 ## License
 
-Apache License 2.0 — see [LICENSE](LICENSE) for details.
+Apache 2.0 — see [LICENSE](LICENSE).
