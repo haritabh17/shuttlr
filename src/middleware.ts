@@ -34,19 +34,36 @@ export async function middleware(request: NextRequest) {
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith("/login") ||
+  const isPublicRoute = request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup") ||
-    request.nextUrl.pathname.startsWith("/auth");
+    request.nextUrl.pathname.startsWith("/auth") ||
+    request.nextUrl.pathname.startsWith("/terms") ||
+    request.nextUrl.pathname.startsWith("/consent");
 
   if (
     allowedEmails.length > 0 &&
     user?.email &&
     !allowedEmails.includes(user.email.toLowerCase()) &&
-    !isAuthRoute
+    !isPublicRoute
   ) {
-    // Sign out and redirect to login
     await supabase.auth.signOut();
     return NextResponse.redirect(new URL("/login?error=access_denied", request.url));
+  }
+
+  // Check terms acceptance — redirect to /consent if not accepted or outdated
+  const TERMS_LAST_UPDATED = "2026-02-28T00:00:00Z";
+
+  if (user && !isPublicRoute) {
+    const { data: profile } = await (supabase as any)
+      .from("profiles")
+      .select("terms_accepted_at")
+      .eq("id", user.id)
+      .single();
+
+    const acceptedAt = profile?.terms_accepted_at;
+    if (!acceptedAt || new Date(acceptedAt) < new Date(TERMS_LAST_UPDATED)) {
+      return NextResponse.redirect(new URL("/consent", request.url));
+    }
   }
 
   return supabaseResponse;
