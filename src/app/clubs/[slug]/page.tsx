@@ -174,10 +174,10 @@ export default async function ClubPage({
           <EventLog clubId={club.id} />
         </details>
 
-        {/* Leave Club — only for non-managers */}
-        {!isManager && (
+        {/* Leave Club — anyone can leave unless they're the last member */}
+        {(members?.length ?? 0) > 1 && (
           <div className="border-t border-zinc-200 pt-6 dark:border-zinc-800">
-            <LeaveClubButton clubId={club.id} clubName={club.name} membershipId={membership.id} />
+            <LeaveClubButton clubId={club.id} clubName={club.name} membershipId={membership.id} isManager={isManager} />
           </div>
         )}
       </main>

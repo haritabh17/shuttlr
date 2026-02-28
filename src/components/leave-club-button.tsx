@@ -8,15 +8,17 @@ interface LeaveClubButtonProps {
   clubId: string;
   clubName: string;
   membershipId: string;
+  isManager?: boolean;
 }
 
-export function LeaveClubButton({ clubId, clubName, membershipId }: LeaveClubButtonProps) {
+export function LeaveClubButton({ clubId, clubName, membershipId, isManager }: LeaveClubButtonProps) {
   const supabase = createClient();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function handleLeave() {
-    if (!confirm(`Are you sure you want to leave ${clubName}? You'll lose access to all sessions and data in this club.`)) return;
+    const managerWarning = isManager ? "\n\n⚠️ You are a manager. The club will continue without you." : "";
+    if (!confirm(`Are you sure you want to leave ${clubName}? You'll lose access to all sessions and data in this club.${managerWarning}`)) return;
     if (!confirm("This cannot be undone. Are you really sure?")) return;
 
     setLoading(true);
