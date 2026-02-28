@@ -60,9 +60,9 @@ export default async function Home() {
       <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="Shuttlr" className="h-8 w-8 rounded" />
+            <img src="/logo.png" alt="shuttlrs" className="h-8 w-8 rounded" />
             <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-              shuttlr
+              shuttlrs
             </h1>
           </div>
           <div className="flex items-center gap-4">

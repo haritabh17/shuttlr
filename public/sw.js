@@ -1,4 +1,4 @@
-// Shuttlr Service Worker — handles push notifications
+// shuttlrs Service Worker — handles push notifications
 
 self.addEventListener("push", (event) => {
   let data = {};
@@ -7,12 +7,12 @@ self.addEventListener("push", (event) => {
   } catch {
     data = { body: event.data?.text() || "You have a notification" };
   }
-  const title = data.title || "Shuttlr";
+  const title = data.title || "shuttlrs";
   const options = {
     body: data.body || "You have a notification",
     icon: "/logo.png",
     badge: "/logo.png",
-    tag: data.tag || "shuttlr-notification",
+    tag: data.tag || "shuttlrs-notification",
     data: { url: data.url || "/" },
     vibrate: [200, 100, 200],
   };

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shuttlr — Badminton Club Manager",
+  title: "shuttlrs — Badminton Club Manager",
   description: "Session scheduling, court rotation, and automated player selection for badminton clubs.",
   icons: {
     icon: "/favicon.ico",

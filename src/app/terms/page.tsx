@@ -19,10 +19,10 @@ export default function TermsPage() {
 
         <div className="mt-8 space-y-8">
           <section>
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">What Shuttlr Is</h2>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">What shuttlrs Is</h2>
             <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
-              Shuttlr is a badminton club management tool. It helps clubs schedule sessions, rotate courts,
-              and select players fairly. By using Shuttlr, you agree to these terms.
+              shuttlrs is a badminton club management tool. It helps clubs schedule sessions, rotate courts,
+              and select players fairly. By using shuttlrs, you agree to these terms.
             </p>
           </section>
 
@@ -31,7 +31,7 @@ export default function TermsPage() {
             <ul className="mt-2 space-y-1.5 text-sm text-zinc-700 dark:text-zinc-300 list-disc pl-5">
               <li>You must provide accurate information when signing up.</li>
               <li>You&apos;re responsible for keeping your login credentials secure.</li>
-              <li>You must be at least 16 years old to use Shuttlr.</li>
+              <li>You must be at least 16 years old to use shuttlrs.</li>
             </ul>
           </section>
 
@@ -108,7 +108,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Liability</h2>
             <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
-              Shuttlr is provided &quot;as is&quot;. We do our best to keep it running and your data safe,
+              shuttlrs is provided &quot;as is&quot;. We do our best to keep it running and your data safe,
               but we can&apos;t guarantee 100% uptime or zero bugs. We&apos;re not liable for any damages
               arising from your use of the service.
             </p>

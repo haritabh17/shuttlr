@@ -66,8 +66,8 @@ export default function LoginPage() {
 
         <div className="relative z-10 max-w-md text-center">
           <div className="mb-8 flex items-center justify-center gap-3">
-            <img src="/logo.png" alt="Shuttlr" className="h-12 w-12 rounded-xl" />
-            <h1 className="text-3xl font-bold text-white tracking-tight">shuttlr</h1>
+            <img src="/logo.png" alt="shuttlrs" className="h-12 w-12 rounded-xl" />
+            <h1 className="text-3xl font-bold text-white tracking-tight">shuttlrs</h1>
           </div>
 
           <p className="text-2xl font-semibold text-white/90 leading-snug">

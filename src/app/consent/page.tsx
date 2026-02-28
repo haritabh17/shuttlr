@@ -44,7 +44,7 @@ export default function ConsentPage() {
     <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4">
       <div className="w-full max-w-lg space-y-6 rounded-xl bg-zinc-900 p-8 shadow-lg">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Shuttlr" className="h-10 w-10 rounded-xl" />
+          <img src="/logo.png" alt="shuttlrs" className="h-10 w-10 rounded-xl" />
           <h1 className="text-2xl font-bold text-white">Terms & Privacy</h1>
         </div>
 

@@ -1,6 +1,6 @@
 {
-  "name": "Shuttlr",
-  "short_name": "Shuttlr",
+  "name": "shuttlrs",
+  "short_name": "shuttlrs",
   "description": "Badminton club management — session scheduling, court rotation, player selection",
   "start_url": "/",
   "display": "standalone",

@@ -1,8 +1,8 @@
-# 🏸 Shuttlr
+# 🏸 shuttlrs
 
 If you run a badminton club, you know the drill. Twenty people show up, four courts, and someone has to figure out who plays next. Usually it's a whiteboard, a peg board, or a WhatsApp argument.
 
-Shuttlr handles all of that. Court rotation, player selection, round timers — the whole thing runs itself so you can actually play.
+shuttlrs handles all of that. Court rotation, player selection, round timers — the whole thing runs itself so you can actually play.
 
 **Try it:** [shuttlrs.com](https://shuttlrs.com)
 

@@ -76,7 +76,7 @@ export default function SignupPage() {
       <div className="w-full max-w-sm space-y-6 rounded-xl bg-white p-8 shadow-md dark:bg-zinc-900">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-            shuttlr
+            shuttlrs
           </h1>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
             Create your account
