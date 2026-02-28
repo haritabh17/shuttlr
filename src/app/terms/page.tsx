@@ -98,10 +98,11 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Data Retention</h2>
             <ul className="mt-2 space-y-1.5 text-sm text-zinc-700 dark:text-zinc-300 list-disc pl-5">
-              <li>Your account data is kept as long as your account is active.</li>
-              <li>If you delete your account, we remove all your personal data within 30 days.</li>
-              <li>Session history and game data associated with deleted accounts is anonymised, not deleted, to preserve club statistics.</li>
+              <li>Your account data is kept for as long as your account is active, and up to 5 years after your last activity.</li>
+              <li>Session history, game data, and club statistics are retained for up to 5 years for record-keeping and analytics purposes.</li>
+              <li>If you request account deletion, we remove your personal data (name, email, profile) within 30 days. Game and session records are anonymised, not deleted, to preserve club statistics.</li>
               <li>Push notification tokens are deleted immediately when you unsubscribe or delete your account.</li>
+              <li>Payment records are retained for 7 years as required by Irish tax law.</li>
             </ul>
           </section>
 
