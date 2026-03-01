@@ -175,12 +175,28 @@ function assignToCourts(
     if (doublesPool.length < 4) break;
 
     const bestCombo = pickBestDoublesCombo(doublesPool, config, pairLookup);
-    if (!bestCombo) break;
-
-    for (const p of [...bestCombo.team_a, ...bestCombo.team_b]) {
-      doublesPool = doublesPool.filter((dp) => dp.id !== p.id);
+    if (bestCombo) {
+      for (const p of [...bestCombo.team_a, ...bestCombo.team_b]) {
+        doublesPool = doublesPool.filter((dp) => dp.id !== p.id);
+      }
+      assignments.push({ court_index: i, game_type: "doubles", ...bestCombo });
+      continue;
     }
-    assignments.push({ court_index: i, game_type: "doubles", ...bestCombo });
+
+    // Strict gender prevented same-gender doubles — fall back to mixed (2M+2F)
+    const poolM = doublesPool.filter((p) => p.gender === "male");
+    const poolF = doublesPool.filter((p) => p.gender === "female");
+    if (poolM.length >= 2 && poolF.length >= 2) {
+      const mixedCombo = pickBestMixedCombo(poolM, poolF, config, pairLookup);
+      if (mixedCombo) {
+        for (const p of [...mixedCombo.team_a, ...mixedCombo.team_b]) {
+          doublesPool = doublesPool.filter((dp) => dp.id !== p.id);
+        }
+        assignments.push({ court_index: i, game_type: "mixed", ...mixedCombo });
+        continue;
+      }
+    }
+    // Truly can't fill this court
   }
 
   // Sort by court index
