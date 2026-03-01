@@ -289,7 +289,7 @@ export default async function GamePage({
 
           {/* Next Up */}
           {upcomingCourts.length > 0 && (
-            <NextUpPanel courts={upcomingCourts} round={upcomingRound} />
+            <NextUpPanel courts={upcomingCourts} round={upcomingRound} isManager={isManager} />
           )}
         </section>
 

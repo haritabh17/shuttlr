@@ -1,5 +1,7 @@
 "use client";
 
+import { PlayerName } from "./player-name";
+
 interface Court {
   name: string;
   game_type: string | null;
@@ -14,69 +16,36 @@ interface Court {
 interface NextUpPanelProps {
   courts: Court[];
   round: number;
+  isManager?: boolean;
 }
 
-const AVATAR_COLORS = [
-  "bg-violet-600",
-  "bg-cyan-600",
-  "bg-orange-700",
-  "bg-green-700",
-  "bg-red-700",
-  "bg-indigo-600",
-  "bg-teal-600",
-  "bg-amber-700",
-];
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-function getAvatarColor(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) | 0;
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-
-export function NextUpPanel({ courts, round }: NextUpPanelProps) {
+export function NextUpPanel({ courts, round, isManager }: NextUpPanelProps) {
   if (courts.length === 0) return null;
 
   return (
-    <div className="mt-4">
-      {/* Banner */}
-      <div className="mx-0 mb-3 flex items-center gap-3 rounded-xl border border-blue-800 bg-blue-950/50 px-4 py-2.5">
-        <span className="text-lg">🔜</span>
-        <div>
-          <p className="text-sm font-semibold text-blue-300">
-            Next Up — Round {round}
-          </p>
-          <p className="text-xs text-zinc-500">Get ready!</p>
-        </div>
-      </div>
-
-      {/* Courts */}
-      <div className="space-y-3">
+    <div className="mt-6 opacity-75">
+      <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+        Next Round {round > 0 && `(Round ${round})`}
+        <span className="ml-2 text-xs font-normal text-zinc-400 dark:text-zinc-500">
+          Get ready!
+        </span>
+      </h2>
+      <div className="grid gap-4 sm:grid-cols-2">
         {courts.map((court, i) => (
           <div
             key={i}
-            className="rounded-xl border border-blue-900 bg-blue-950/30 p-3"
+            className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
           >
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-semibold text-zinc-400">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">
                 {court.name}
-              </span>
+              </h3>
               {court.game_type && (
                 <span
                   className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                     court.game_type === "mixed"
-                      ? "bg-teal-900/50 text-teal-300"
-                      : "bg-blue-900/50 text-blue-300"
+                      ? "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400"
+                      : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                   }`}
                 >
                   {court.game_type === "mixed" ? "Mixed" : "Doubles"}
@@ -84,55 +53,33 @@ export function NextUpPanel({ courts, round }: NextUpPanelProps) {
               )}
             </div>
 
-            {court.players.length >= 4 ? (
-              <div className="flex items-center gap-2">
-                {/* Team A */}
-                <div className="flex-1 space-y-1">
-                  {court.players.slice(0, 2).map((p) => (
-                    <PlayerRow key={p.id} player={p} />
-                  ))}
-                </div>
-                <span className="text-xs font-bold text-zinc-600">vs</span>
-                {/* Team B */}
-                <div className="flex-1 space-y-1">
-                  {court.players.slice(2, 4).map((p) => (
-                    <PlayerRow key={p.id} player={p} />
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-1">
+            {court.players.length > 0 ? (
+              <div className="space-y-1.5">
                 {court.players.map((p) => (
-                  <PlayerRow key={p.id} player={p} />
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-1.5 text-sm dark:bg-zinc-800"
+                  >
+                    <PlayerName
+                      name={p.full_name}
+                      gender={p.gender}
+                      className="text-zinc-900 dark:text-zinc-100"
+                    />
+                    {isManager && (
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                        L{p.level || "?"}
+                      </span>
+                    )}
+                  </div>
                 ))}
               </div>
+            ) : (
+              <p className="text-sm text-zinc-400 dark:text-zinc-500 italic">
+                Empty
+              </p>
             )}
           </div>
         ))}
-      </div>
-    </div>
-  );
-}
-
-function PlayerRow({
-  player,
-}: {
-  player: { id: string; full_name: string; level: number | null };
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <div
-        className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold text-white ${getAvatarColor(player.id)}`}
-      >
-        {getInitials(player.full_name)}
-      </div>
-      <div>
-        <p className="text-xs font-medium text-zinc-200">
-          {player.full_name}
-        </p>
-        {player.level && (
-          <p className="text-[10px] text-zinc-500">Lvl {player.level}</p>
-        )}
       </div>
     </div>
   );
