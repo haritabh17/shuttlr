@@ -112,12 +112,13 @@ export default async function GamePage({
     .eq("status", "active");
 
   // Fetch current round assignments
-  const { data: assignments } = await supabase
+  const { data: assignments } = await (supabase as any)
     .from("court_assignments")
     .select(`
       id,
       court_id,
       round,
+      assignment_status,
       user:profiles (
         id,
         full_name,
@@ -129,11 +130,6 @@ export default async function GamePage({
     .order("round", { ascending: false })
     .limit(50);
 
-  // Get the latest round number
-  const latestRound = assignments && assignments.length > 0
-    ? Math.max(...assignments.map((a) => a.round))
-    : 0;
-
   const enrichedAssignments = (assignments ?? []).map((a: any) => ({
     ...a,
     user: a.user ? {
@@ -142,8 +138,16 @@ export default async function GamePage({
     } : a.user,
   }));
 
-  const currentAssignments = enrichedAssignments.filter(
-    (a: any) => a.round === latestRound && (a as any).assignment_status !== "upcoming"
+  // Get the latest ACTIVE round number (exclude upcoming)
+  const activeAssignments = enrichedAssignments.filter(
+    (a: any) => (a as any).assignment_status !== "upcoming"
+  );
+  const latestRound = activeAssignments.length > 0
+    ? Math.max(...activeAssignments.map((a: any) => a.round))
+    : 0;
+
+  const currentAssignments = activeAssignments.filter(
+    (a: any) => a.round === latestRound
   );
 
   // Fetch upcoming (next round) assignments
