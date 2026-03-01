@@ -323,6 +323,7 @@ async function runSelection(
       mixed_ratio: session.mixed_ratio ?? 50,
       skill_balance: session.skill_balance ?? 70,
       partner_variety: session.partner_variety ?? 80,
+      strict_gender: session.strict_gender ?? true,
     };
 
     // Run new selection engine

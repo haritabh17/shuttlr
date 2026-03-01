@@ -26,6 +26,7 @@ export interface AlgorithmConfig {
   mixed_ratio: number;    // 0-100
   skill_balance: number;  // 0-100
   partner_variety: number; // 0-100
+  strict_gender: boolean; // when true, doubles must be same-gender; 3:1 combos never happen
 }
 
 export interface CourtAssignment {
@@ -243,19 +244,23 @@ function pickBestDoublesCombo(
   config: AlgorithmConfig,
   pairLookup: Map<string, number>,
 ): { team_a: [Player, Player]; team_b: [Player, Player] } | null {
-  // Try same-gender first
   const males = pool.filter((p) => p.gender === "male");
   const females = pool.filter((p) => p.gender === "female");
 
   // Prefer whichever gender has more players available
   const genderPools = males.length >= females.length
-    ? [males, females, pool]
-    : [females, males, pool];
+    ? [males, females]
+    : [females, males];
 
   for (const gPool of genderPools) {
     if (gPool.length < 4) continue;
     const result = pickBest4FromPool(gPool.slice(0, Math.min(6, gPool.length)), config, pairLookup);
     if (result) return result;
+  }
+
+  // Fallback to any combo only if strict_gender is off
+  if (!config.strict_gender && pool.length >= 4) {
+    return pickBest4FromPool(pool.slice(0, Math.min(6, pool.length)), config, pairLookup);
   }
 
   return null;

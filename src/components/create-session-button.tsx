@@ -16,6 +16,7 @@ export function CreateSessionButton({ clubId, clubName }: { clubId: string; club
   const [mixedRatio, setMixedRatio] = useState(50);
   const [skillBalance, setSkillBalance] = useState(70);
   const [partnerVariety, setPartnerVariety] = useState(80);
+  const [strictGender, setStrictGender] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -70,6 +71,7 @@ export function CreateSessionButton({ clubId, clubName }: { clubId: string; club
       mixed_ratio: mixedRatio,
       skill_balance: skillBalance,
       partner_variety: partnerVariety,
+      strict_gender: strictGender,
       status: "draft",
     });
 
@@ -172,9 +174,11 @@ export function CreateSessionButton({ clubId, clubName }: { clubId: string; club
             mixedRatio={mixedRatio}
             skillBalance={skillBalance}
             partnerVariety={partnerVariety}
+            strictGender={strictGender}
             onMixedRatioChange={setMixedRatio}
             onSkillBalanceChange={setSkillBalance}
             onPartnerVarietyChange={setPartnerVariety}
+            onStrictGenderChange={setStrictGender}
             numCourts={numberOfCourts}
           />
 

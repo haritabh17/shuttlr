@@ -27,6 +27,7 @@ export function EditSessionSettings({ session }: { session: Session }) {
   const [mixedRatio, setMixedRatio] = useState(session.mixed_ratio ?? 50);
   const [skillBalance, setSkillBalance] = useState(session.skill_balance ?? 70);
   const [partnerVariety, setPartnerVariety] = useState(session.partner_variety ?? 80);
+  const [strictGender, setStrictGender] = useState((session as any).strict_gender ?? true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -57,6 +58,7 @@ export function EditSessionSettings({ session }: { session: Session }) {
         mixed_ratio: mixedRatio,
         skill_balance: skillBalance,
         partner_variety: partnerVariety,
+        strict_gender: strictGender,
       } as any)
       .eq("id", session.id);
 
@@ -158,9 +160,11 @@ export function EditSessionSettings({ session }: { session: Session }) {
             mixedRatio={mixedRatio}
             skillBalance={skillBalance}
             partnerVariety={partnerVariety}
+            strictGender={strictGender}
             onMixedRatioChange={setMixedRatio}
             onSkillBalanceChange={setSkillBalance}
             onPartnerVarietyChange={setPartnerVariety}
+            onStrictGenderChange={setStrictGender}
             numCourts={courts}
           />
 

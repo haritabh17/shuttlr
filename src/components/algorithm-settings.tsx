@@ -4,9 +4,11 @@ interface AlgorithmSettingsProps {
   mixedRatio: number;
   skillBalance: number;
   partnerVariety: number;
+  strictGender: boolean;
   onMixedRatioChange: (v: number) => void;
   onSkillBalanceChange: (v: number) => void;
   onPartnerVarietyChange: (v: number) => void;
+  onStrictGenderChange: (v: boolean) => void;
   numCourts?: number;
 }
 
@@ -61,9 +63,11 @@ export function AlgorithmSettings({
   mixedRatio,
   skillBalance,
   partnerVariety,
+  strictGender,
   onMixedRatioChange,
   onSkillBalanceChange,
   onPartnerVarietyChange,
+  onStrictGenderChange,
   numCourts = 4,
 }: AlgorithmSettingsProps) {
   const mixedCourts = Math.round((mixedRatio / 100) * numCourts);
@@ -96,6 +100,29 @@ export function AlgorithmSettings({
         }
         description="Spread skill levels evenly across courts vs allow natural groupings."
       />
+
+      <div className="mb-5">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <div className="relative">
+            <input
+              type="checkbox"
+              checked={strictGender}
+              onChange={(e) => onStrictGenderChange(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-9 h-5 rounded-full bg-zinc-700 peer-checked:bg-teal-600 transition-colors" />
+            <div className="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4" />
+          </div>
+          <div>
+            <span className="text-sm font-medium text-zinc-300">Strict Gender Balance</span>
+            <p className="text-[11px] text-zinc-500 mt-0.5">
+              {strictGender
+                ? "Doubles courts are same-gender only (4M or 4F). No 3:1 combos."
+                : "Allows mixed-gender doubles (e.g. 3F+1M) when same-gender groups aren't possible."}
+            </p>
+          </div>
+        </label>
+      </div>
 
       <SliderField
         label="Partner Variety"

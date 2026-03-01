@@ -237,6 +237,7 @@ export default async function GamePage({
                         ? "Medium"
                         : "High"}{" "}
                     balance · 🔄 {(session as any).partner_variety ?? 80}% variety
+                    {(session as any).strict_gender !== false && " · 🚻 Strict gender"}
                   </p>
                 )}
               </div>
