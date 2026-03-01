@@ -41,15 +41,20 @@ export function RealtimeNotification({
             user_id: string;
             court_id: string;
             round: number;
+            assignment_status?: string;
           };
+
+          const isUpcoming = assignment.assignment_status === "upcoming";
 
           // Only notify if this assignment is for the current user
           if (assignment.user_id === userId) {
             const court = courts.find((c) => c.id === assignment.court_id);
             const courtName = court?.name ?? "a court";
             const notification: Notification = {
-              id: `${assignment.court_id}-${assignment.round}`,
-              message: `You're up! Head to ${courtName} (Round ${assignment.round})`,
+              id: `${assignment.court_id}-${assignment.round}-${isUpcoming ? "next" : "now"}`,
+              message: isUpcoming
+                ? `You're up next! Get ready for ${courtName} (Round ${assignment.round})`
+                : `You're up! Head to ${courtName} (Round ${assignment.round})`,
               timestamp: Date.now(),
             };
             setNotifications((prev) => [notification, ...prev]);
@@ -63,6 +68,19 @@ export function RealtimeNotification({
           }
 
           // Refresh page data on any new assignment
+          router.refresh();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "court_assignments",
+          filter: `session_id=eq.${sessionId}`,
+        },
+        () => {
+          // Refresh when assignments change (e.g. upcoming → active)
           router.refresh();
         }
       )
