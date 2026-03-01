@@ -224,17 +224,7 @@ async function promoteOrSelect(
       })
       .eq("id", session.id);
 
-    // Send push for the new round
-    const round = await getMaxRound(supabase, session.id);
-    if (newAssignments) {
-      await sendPushNotifications(
-        supabase,
-        session,
-        newAssignments.map((a: any) => a.user_id),
-        round,
-        serviceRoleKey,
-      );
-    }
+    // No push here — players already got "You're up next!" when upcoming was selected
   } else {
     // No upcoming — run fresh selection
     await runSelection(supabase, session, serviceRoleKey, "active");
