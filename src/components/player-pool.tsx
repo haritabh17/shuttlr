@@ -50,6 +50,7 @@ export function PlayerPool({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
   const isInSession = players.some(
@@ -94,11 +95,20 @@ export function PlayerPool({
   async function joinSession() {
     if (!sessionId || !currentUserId) return;
     setLoading(true);
-    await fetch(`/api/sessions/${sessionId}/players`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ playerIds: [currentUserId] }),
-    });
+    setError(null);
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/players`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerIds: [currentUserId] }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to join session");
+      }
+    } catch {
+      setError("Network error — try again");
+    }
     setLoading(false);
     router.refresh();
   }
@@ -182,6 +192,10 @@ export function PlayerPool({
           </button>
         )}
       </div>
+
+      {error && (
+        <p className="mb-3 text-sm text-red-500">{error}</p>
+      )}
 
       {sorted.length === 0 ? (
         <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-8 text-center dark:border-zinc-700 dark:bg-zinc-900">
