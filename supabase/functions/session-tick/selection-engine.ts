@@ -56,8 +56,12 @@ export function selectPlayers(
     effective_games: p.games_played + (p.is_on_court ? 1 : 0),
   }));
 
-  // Sort by effective games (ascending = priority)
-  adjusted.sort((a, b) => a.effective_games - b.effective_games);
+  // Sort by effective games (ascending = priority), shuffle ties randomly
+  adjusted.sort((a, b) => {
+    const diff = a.effective_games - b.effective_games;
+    if (diff !== 0) return diff;
+    return Math.random() - 0.5; // break ties randomly
+  });
 
   // Take top N players (may be fewer than needed)
   const actualCourts = Math.min(numCourts, Math.floor(adjusted.length / 4));
@@ -214,9 +218,9 @@ function pickBestMixedCombo(
   config: AlgorithmConfig,
   pairLookup: Map<string, number>,
 ): { team_a: [Player, Player]; team_b: [Player, Player] } | null {
-  // Take top 4 of each gender (already sorted by fairness)
-  const topM = males.slice(0, Math.min(4, males.length));
-  const topF = females.slice(0, Math.min(4, females.length));
+  // Take top candidates of each gender
+  const topM = males.slice(0, Math.min(6, males.length));
+  const topF = females.slice(0, Math.min(6, females.length));
 
   let bestScore = -Infinity;
   let bestTeams: { team_a: [Player, Player]; team_b: [Player, Player] } | null = null;
@@ -270,13 +274,13 @@ function pickBestDoublesCombo(
 
   for (const gPool of genderPools) {
     if (gPool.length < 4) continue;
-    const result = pickBest4FromPool(gPool.slice(0, Math.min(6, gPool.length)), config, pairLookup);
+    const result = pickBest4FromPool(gPool.slice(0, Math.min(8, gPool.length)), config, pairLookup);
     if (result) return result;
   }
 
   // Fallback to any combo only if strict_gender is off
   if (!config.strict_gender && pool.length >= 4) {
-    return pickBest4FromPool(pool.slice(0, Math.min(6, pool.length)), config, pairLookup);
+    return pickBest4FromPool(pool.slice(0, Math.min(8, pool.length)), config, pairLookup);
   }
 
   return null;
