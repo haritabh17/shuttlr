@@ -224,6 +224,9 @@ async function promoteOrSelect(
       })
       .eq("id", session.id);
 
+    // Sync statuses to catch any manual swaps
+    await syncPlayerStatuses(supabase, session.id);
+
     // No push here — players already got "You're up next!" when upcoming was selected
   } else {
     // No upcoming — run fresh selection
@@ -454,6 +457,9 @@ async function runSelection(
         })
         .eq("id", session.id);
 
+      // Sync statuses to catch any manual swaps
+      await syncPlayerStatuses(supabase, session.id);
+
       // Push notifications
       await sendPushNotifications(
         supabase,
@@ -515,6 +521,56 @@ async function getMaxRound(supabase: any, sessionId: string): Promise<number> {
     .limit(1);
 
   return data?.[0]?.round ?? 0;
+}
+
+/**
+ * Ensure session_players status matches court_assignments.
+ * Any player in an active assignment for the current round should be "playing".
+ * Any player NOT in an active assignment and currently "playing" should be "available".
+ */
+async function syncPlayerStatuses(supabase: any, sessionId: string) {
+  const round = await getMaxRound(supabase, sessionId);
+  if (round === 0) return;
+
+  const { data: activeAssignments } = await supabase
+    .from("court_assignments")
+    .select("user_id")
+    .eq("session_id", sessionId)
+    .eq("assignment_status", "active")
+    .eq("round", round);
+
+  if (!activeAssignments) return;
+
+  const onCourtIds = new Set(activeAssignments.map((a: any) => a.user_id));
+
+  // Mark on-court players as "playing" if they aren't already
+  for (const a of activeAssignments) {
+    await supabase
+      .from("session_players")
+      .update({ status: "playing" })
+      .eq("session_id", sessionId)
+      .eq("user_id", a.user_id)
+      .neq("status", "playing");
+  }
+
+  // Mark any "playing" player NOT on court as "available"
+  const { data: playingPlayers } = await supabase
+    .from("session_players")
+    .select("user_id")
+    .eq("session_id", sessionId)
+    .eq("status", "playing");
+
+  if (playingPlayers) {
+    for (const p of playingPlayers) {
+      if (!onCourtIds.has(p.user_id)) {
+        await supabase
+          .from("session_players")
+          .update({ status: "available" })
+          .eq("session_id", sessionId)
+          .eq("user_id", p.user_id);
+      }
+    }
+  }
 }
 
 interface PushContext {
