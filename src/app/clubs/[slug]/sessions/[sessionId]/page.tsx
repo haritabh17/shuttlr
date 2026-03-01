@@ -282,20 +282,22 @@ export default async function GamePage({
 
         {/* Courts */}
         <section>
-          <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            Courts {latestRound > 0 && `(Round ${latestRound})`}
-          </h2>
-          <CourtView
-            courts={courts ?? []}
-            assignments={currentAssignments}
-            isManager={isManager}
-            isReadOnly={isReadOnly}
-          />
-
-          {/* Next Up */}
+          {/* Next Up — shown above current when available */}
           {upcomingCourts.length > 0 && (
             <NextUpPanel courts={upcomingCourts} round={upcomingRound} isManager={isManager} />
           )}
+
+          <div className={upcomingCourts.length > 0 ? "opacity-60 mt-6" : ""}>
+            <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              {upcomingCourts.length > 0 ? "Current Round" : "Courts"} {latestRound > 0 && `(Round ${latestRound})`}
+            </h2>
+            <CourtView
+              courts={courts ?? []}
+              assignments={currentAssignments}
+              isManager={isManager}
+              isReadOnly={isReadOnly}
+            />
+          </div>
         </section>
 
         {/* Player Pool */}

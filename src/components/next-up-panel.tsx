@@ -23,7 +23,7 @@ export function NextUpPanel({ courts, round, isManager }: NextUpPanelProps) {
   if (courts.length === 0) return null;
 
   return (
-    <div className="mt-6 opacity-75">
+    <div>
       <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
         Next Round {round > 0 && `(Round ${round})`}
         <span className="ml-2 text-xs font-normal text-zinc-400 dark:text-zinc-500">
