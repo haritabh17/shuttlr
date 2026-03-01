@@ -217,11 +217,24 @@ export default async function GamePage({
               <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
                 {session.name}
               </h1>
-              <div className="mt-0.5 flex items-center gap-2">
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  {session.number_of_courts} courts · {session.play_time_minutes}min play · {session.rest_time_minutes}min rest
-                </p>
-                {isManager && !isReadOnly && <EditSessionSettings session={session as any} />}
+              <div className="mt-0.5 flex flex-col gap-0.5">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                    {session.number_of_courts} courts · {session.play_time_minutes}min play · {session.rest_time_minutes}min rest
+                  </p>
+                  {isManager && !isReadOnly && <EditSessionSettings session={session as any} />}
+                </div>
+                {isManager && (
+                  <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                    🔀 {(session as any).mixed_ratio ?? 50}% mixed · ⚖️{" "}
+                    {((session as any).skill_balance ?? 70) < 30
+                      ? "Low"
+                      : ((session as any).skill_balance ?? 70) < 70
+                        ? "Medium"
+                        : "High"}{" "}
+                    balance · 🔄 {(session as any).partner_variety ?? 80}% variety
+                  </p>
+                )}
               </div>
             </div>
             <span
