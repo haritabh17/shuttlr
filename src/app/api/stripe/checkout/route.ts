@@ -31,12 +31,39 @@ export async function POST(req: NextRequest) {
 
   const priceId = billingCycle === "monthly" ? PRICES.monthly : PRICES.yearly;
 
+  // Get user profile for name
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", user.id)
+    .single();
+
+  // Check if club already has a Stripe customer
+  const { data: sub } = await (supabase as any)
+    .from("club_subscriptions")
+    .select("stripe_customer_id")
+    .eq("club_id", clubId)
+    .single();
+
+  let customerId = sub?.stripe_customer_id;
+
+  if (!customerId) {
+    // Create a Stripe customer with name
+    const customer = await stripe.customers.create({
+      email: user.email ?? undefined,
+      name: profile?.full_name ?? undefined,
+      metadata: { club_id: clubId, user_id: user.id },
+    });
+    customerId = customer.id;
+  }
+
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     payment_method_types: ["card"],
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${req.nextUrl.origin}/?upgraded=true`,
     cancel_url: `${req.nextUrl.origin}/`,
+    customer: customerId,
     metadata: {
       club_id: clubId,
       user_id: user.id,
@@ -47,7 +74,6 @@ export async function POST(req: NextRequest) {
         user_id: user.id,
       },
     },
-    customer_email: user.email ?? undefined,
     allow_promotion_codes: true,
   });
 
