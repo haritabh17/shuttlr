@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { AlgorithmSettings } from "@/components/algorithm-settings";
 
 export function CreateSessionButton({ clubId, clubName }: { clubId: string; clubName?: string }) {
   const [open, setOpen] = useState(false);
@@ -12,6 +13,9 @@ export function CreateSessionButton({ clubId, clubName }: { clubId: string; club
   const [restTime, setRestTime] = useState(5);
   const [selectionInterval, setSelectionInterval] = useState(12);
   const [numberOfCourts, setNumberOfCourts] = useState(2);
+  const [mixedRatio, setMixedRatio] = useState(50);
+  const [skillBalance, setSkillBalance] = useState(70);
+  const [partnerVariety, setPartnerVariety] = useState(80);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -57,6 +61,9 @@ export function CreateSessionButton({ clubId, clubName }: { clubId: string; club
       rest_time_minutes: restTime,
       selection_interval_minutes: selectionInterval,
       number_of_courts: numberOfCourts,
+      mixed_ratio: mixedRatio,
+      skill_balance: skillBalance,
+      partner_variety: partnerVariety,
       status: "draft",
     });
 
@@ -154,6 +161,16 @@ export function CreateSessionButton({ clubId, clubName }: { clubId: string; club
               />
             </div>
           </div>
+
+          <AlgorithmSettings
+            mixedRatio={mixedRatio}
+            skillBalance={skillBalance}
+            partnerVariety={partnerVariety}
+            onMixedRatioChange={setMixedRatio}
+            onSkillBalanceChange={setSkillBalance}
+            onPartnerVarietyChange={setPartnerVariety}
+            numCourts={numberOfCourts}
+          />
 
           {error && <p className="text-sm text-red-500">{error}</p>}
 

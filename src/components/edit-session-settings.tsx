@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { AlgorithmSettings } from "@/components/algorithm-settings";
 
 interface Session {
   id: string;
@@ -11,6 +12,9 @@ interface Session {
   play_time_minutes: number;
   rest_time_minutes: number;
   selection_interval_minutes: number;
+  mixed_ratio: number;
+  skill_balance: number;
+  partner_variety: number;
 }
 
 export function EditSessionSettings({ session }: { session: Session }) {
@@ -20,6 +24,9 @@ export function EditSessionSettings({ session }: { session: Session }) {
   const [playTime, setPlayTime] = useState(session.play_time_minutes);
   const [restTime, setRestTime] = useState(session.rest_time_minutes);
   const [selectionInterval, setSelectionInterval] = useState(session.selection_interval_minutes);
+  const [mixedRatio, setMixedRatio] = useState(session.mixed_ratio ?? 50);
+  const [skillBalance, setSkillBalance] = useState(session.skill_balance ?? 70);
+  const [partnerVariety, setPartnerVariety] = useState(session.partner_variety ?? 80);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -43,7 +50,10 @@ export function EditSessionSettings({ session }: { session: Session }) {
         play_time_minutes: playTime,
         rest_time_minutes: restTime,
         selection_interval_minutes: selectionInterval,
-      })
+        mixed_ratio: mixedRatio,
+        skill_balance: skillBalance,
+        partner_variety: partnerVariety,
+      } as any)
       .eq("id", session.id);
 
     if (updateErr) {
@@ -139,6 +149,16 @@ export function EditSessionSettings({ session }: { session: Session }) {
               />
             </div>
           </div>
+
+          <AlgorithmSettings
+            mixedRatio={mixedRatio}
+            skillBalance={skillBalance}
+            partnerVariety={partnerVariety}
+            onMixedRatioChange={setMixedRatio}
+            onSkillBalanceChange={setSkillBalance}
+            onPartnerVarietyChange={setPartnerVariety}
+            numCourts={courts}
+          />
 
           {error && <p className="text-sm text-red-500">{error}</p>}
 

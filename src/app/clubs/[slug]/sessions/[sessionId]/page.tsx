@@ -7,6 +7,7 @@ import { CourtView } from "@/components/court-view";
 import { PlayerPool } from "@/components/player-pool";
 import { RealtimeNotification } from "@/components/realtime-notification";
 import { EditSessionSettings } from "@/components/edit-session-settings";
+import { NextUpPanel } from "@/components/next-up-panel";
 
 export default async function GamePage({
   params,
@@ -141,7 +142,48 @@ export default async function GamePage({
     } : a.user,
   }));
 
-  const currentAssignments = enrichedAssignments.filter((a: any) => a.round === latestRound);
+  const currentAssignments = enrichedAssignments.filter(
+    (a: any) => a.round === latestRound && (a as any).assignment_status !== "upcoming"
+  );
+
+  // Fetch upcoming (next round) assignments
+  const { data: upcomingRaw } = await (supabase as any)
+    .from("court_assignments")
+    .select(`
+      id,
+      court_id,
+      round,
+      assignment_status,
+      game_type,
+      user:profiles (id, full_name, gender, level)
+    `)
+    .eq("session_id", sessionId)
+    .eq("assignment_status", "upcoming")
+    .order("court_id");
+
+  const upcomingAssignments = (upcomingRaw ?? []).map((a: any) => ({
+    ...a,
+    user: a.user ? {
+      ...a.user,
+      full_name: nicknameMap[a.user.id] || a.user.full_name,
+    } : a.user,
+  }));
+
+  // Group upcoming by court for NextUpPanel
+  const upcomingByCourtId: Record<string, { name: string; game_type: string | null; players: any[] }> = {};
+  let upcomingRound = 0;
+  for (const a of upcomingAssignments) {
+    if (a.round > upcomingRound) upcomingRound = a.round;
+    const court = (courts ?? []).find((c: any) => c.id === a.court_id);
+    const courtName = court?.name ?? "Court";
+    if (!upcomingByCourtId[a.court_id]) {
+      upcomingByCourtId[a.court_id] = { name: courtName, game_type: a.game_type, players: [] };
+    }
+    if (a.user) {
+      upcomingByCourtId[a.court_id].players.push(a.user);
+    }
+  }
+  const upcomingCourts = Object.values(upcomingByCourtId);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -179,7 +221,7 @@ export default async function GamePage({
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
                   {session.number_of_courts} courts · {session.play_time_minutes}min play · {session.rest_time_minutes}min rest
                 </p>
-                {isManager && !isReadOnly && <EditSessionSettings session={session} />}
+                {isManager && !isReadOnly && <EditSessionSettings session={session as any} />}
               </div>
             </div>
             <span
@@ -231,6 +273,11 @@ export default async function GamePage({
             isManager={isManager}
             isReadOnly={isReadOnly}
           />
+
+          {/* Next Up */}
+          {upcomingCourts.length > 0 && (
+            <NextUpPanel courts={upcomingCourts} round={upcomingRound} />
+          )}
         </section>
 
         {/* Player Pool */}
