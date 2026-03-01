@@ -105,6 +105,37 @@ export async function POST(req: NextRequest) {
 
       break;
     }
+
+    case "charge.refunded": {
+      const charge = event.data.object as AnyObj;
+      // Get the subscription via the invoice
+      if (!charge.invoice) break;
+
+      const invoice = await stripe.invoices.retrieve(charge.invoice as string) as AnyObj;
+      const subId = invoice.subscription as string;
+      if (!subId) break;
+
+      // Cancel the subscription on Stripe
+      try {
+        await stripe.subscriptions.cancel(subId);
+      } catch {
+        // Already canceled
+      }
+
+      // Downgrade in our DB
+      await (admin as any)
+        .from("club_subscriptions")
+        .update({
+          plan: "free",
+          status: "canceled",
+          canceled_at: new Date().toISOString(),
+          stripe_subscription_id: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("stripe_subscription_id", subId);
+
+      break;
+    }
   }
 
   return NextResponse.json({ received: true });
