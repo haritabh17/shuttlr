@@ -318,9 +318,9 @@ async function runSelection(
       .map((sp: any) => ({
         id: sp.user.id,
         gender:
-          sp.user.gender === "male"
+          (sp.user.gender === "male" || sp.user.gender === "M")
             ? "male"
-            : sp.user.gender === "female"
+            : (sp.user.gender === "female" || sp.user.gender === "F")
               ? "female"
               : null,
         level: sp.user.level ?? 3,

@@ -236,14 +236,36 @@ function pickBestMixedCombo(
 
 /**
  * Pick best 4 players for a doubles court
+ * Prefers same-gender groups (4M or 4F), falls back to any combo
  */
 function pickBestDoublesCombo(
   pool: Player[],
   config: AlgorithmConfig,
   pairLookup: Map<string, number>,
 ): { team_a: [Player, Player]; team_b: [Player, Player] } | null {
-  // Take top 6 candidates (already sorted by fairness)
-  const top = pool.slice(0, Math.min(6, pool.length));
+  // Try same-gender first
+  const males = pool.filter((p) => p.gender === "male");
+  const females = pool.filter((p) => p.gender === "female");
+
+  // Prefer whichever gender has more players available
+  const genderPools = males.length >= females.length
+    ? [males, females, pool]
+    : [females, males, pool];
+
+  for (const gPool of genderPools) {
+    if (gPool.length < 4) continue;
+    const result = pickBest4FromPool(gPool.slice(0, Math.min(6, gPool.length)), config, pairLookup);
+    if (result) return result;
+  }
+
+  return null;
+}
+
+function pickBest4FromPool(
+  top: Player[],
+  config: AlgorithmConfig,
+  pairLookup: Map<string, number>,
+): { team_a: [Player, Player]; team_b: [Player, Player] } | null {
   if (top.length < 4) return null;
 
   let bestScore = -Infinity;
