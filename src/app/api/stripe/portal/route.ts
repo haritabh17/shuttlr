@@ -12,6 +12,13 @@ export async function POST(req: NextRequest) {
 
   const { clubId } = await req.json();
 
+  // Get club slug for return URL
+  const { data: club } = await supabase
+    .from("clubs")
+    .select("slug")
+    .eq("id", clubId)
+    .single();
+
   // Verify manager
   const { data: membership } = await supabase
     .from("club_members")
@@ -39,7 +46,7 @@ export async function POST(req: NextRequest) {
   const stripe = getStripe();
   const session = await stripe.billingPortal.sessions.create({
     customer: sub.stripe_customer_id,
-    return_url: `${req.nextUrl.origin}/clubs/${clubId}`,
+    return_url: `${req.nextUrl.origin}/clubs/${club?.slug ?? clubId}`,
   });
 
   return NextResponse.json({ url: session.url });
