@@ -271,6 +271,7 @@ export default async function GamePage({
           sessionStatus={session.status}
           playTimeMinutes={session.play_time_minutes}
           restTimeMinutes={session.rest_time_minutes}
+          selectionIntervalMinutes={session.selection_interval_minutes}
           currentPhase={(session as any).current_phase || "idle"}
           currentRoundStartedAt={(session as any).current_round_started_at}
         />

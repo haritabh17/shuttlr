@@ -24,6 +24,12 @@ export function CreateSessionButton({ clubId, clubName }: { clubId: string; club
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (selectionInterval >= playTime) {
+      setError("Selection interval must be less than play time");
+      return;
+    }
+
     setLoading(true);
 
     // Check session limits

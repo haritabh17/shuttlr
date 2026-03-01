@@ -40,6 +40,10 @@ export function EditSessionSettings({ session }: { session: Session }) {
       setError("Please enter valid values (courts ≥ 1, play time ≥ 1, rest time ≥ 0, interval ≥ 1)");
       return;
     }
+    if (selectionInterval >= playTime) {
+      setError("Selection interval must be less than play time");
+      return;
+    }
 
     setLoading(true);
     const { error: updateErr } = await supabase

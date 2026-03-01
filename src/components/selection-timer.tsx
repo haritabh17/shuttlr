@@ -8,6 +8,7 @@ interface SelectionTimerProps {
   sessionStatus: string;
   playTimeMinutes: number;
   restTimeMinutes: number;
+  selectionIntervalMinutes: number;
   currentPhase: string;
   currentRoundStartedAt: string | null;
 }
@@ -16,6 +17,7 @@ export function SelectionTimer({
   sessionStatus,
   playTimeMinutes,
   restTimeMinutes,
+  selectionIntervalMinutes,
   currentPhase,
   currentRoundStartedAt,
 }: SelectionTimerProps) {
@@ -68,7 +70,8 @@ export function SelectionTimer({
   const totalMs = isResting ? restTimeMinutes * 60 * 1000 : playTimeMinutes * 60 * 1000;
   const minutes = Math.floor(timeLeft / 60000);
   const seconds = Math.floor((timeLeft % 60000) / 1000);
-  const isUrgent = !isResting && timeLeft < 30000;
+  const selectionRemainingMs = (playTimeMinutes - selectionIntervalMinutes) * 60 * 1000;
+  const isUrgent = !isResting && timeLeft <= selectionRemainingMs;
   const progress = totalMs > 0 ? ((totalMs - timeLeft) / totalMs) * 100 : 100;
 
   return (
