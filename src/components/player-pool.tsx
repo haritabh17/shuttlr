@@ -38,12 +38,14 @@ function statusColor(status: string) {
 export function PlayerPool({
   players,
   isManager,
+  isReadOnly,
   sessionId,
   currentUserId,
   clubMembers,
 }: {
   players: Player[];
   isManager: boolean;
+  isReadOnly?: boolean;
   sessionId?: string;
   currentUserId?: string;
   clubMembers?: { user_id: string | null; user: { id: string; full_name: string } | null }[];
@@ -144,7 +146,7 @@ export function PlayerPool({
   return (
     <div>
       <div className="mb-3 flex gap-2">
-        {isManager && sessionId && (
+        {isManager && sessionId && !isReadOnly && (
           <>
             <button
               onClick={() => setShowAddModal(true)}
@@ -162,7 +164,7 @@ export function PlayerPool({
           </>
         )}
 
-        {!isManager && sessionId && !isInSession && (
+        {!isManager && sessionId && !isReadOnly && !isInSession && (
           <button
             onClick={joinSession}
             disabled={loading}
@@ -172,13 +174,13 @@ export function PlayerPool({
           </button>
         )}
 
-        {!isManager && sessionId && isPending && (
+        {!isManager && sessionId && !isReadOnly && isPending && (
           <span className="rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-1.5 text-sm font-medium text-yellow-700 dark:border-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-400">
             ⏳ Request Pending
           </span>
         )}
 
-        {!isManager && sessionId && isInSession && !isPending && (
+        {!isManager && sessionId && !isReadOnly && isInSession && !isPending && (
           <button
             onClick={leaveSession}
             disabled={loading}

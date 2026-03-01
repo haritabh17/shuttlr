@@ -304,10 +304,16 @@ export default async function GamePage({
         <section>
           <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
             Players ({enrichedSessionPlayers.filter((p: any) => p.status !== "removed").length})
+            {isManager && enrichedSessionPlayers.filter((p: any) => p.status === "pending").length > 0 && (
+              <span className="ml-2 inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                {enrichedSessionPlayers.filter((p: any) => p.status === "pending").length} pending
+              </span>
+            )}
           </h2>
           <PlayerPool
             players={enrichedSessionPlayers}
             isManager={isManager}
+            isReadOnly={isReadOnly}
             sessionId={sessionId}
             currentUserId={user.id}
             clubMembers={(clubMembers ?? []).map((cm: any) => ({

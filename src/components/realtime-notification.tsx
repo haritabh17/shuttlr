@@ -87,6 +87,19 @@ export function RealtimeNotification({
       .on(
         "postgres_changes",
         {
+          event: "*",
+          schema: "public",
+          table: "session_players",
+          filter: `session_id=eq.${sessionId}`,
+        },
+        () => {
+          // Refresh when players join/leave/get admitted
+          router.refresh();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
           event: "UPDATE",
           schema: "public",
           table: "sessions",
