@@ -28,6 +28,8 @@ function statusColor(status: string) {
       return "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400";
     case "removed":
       return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+    case "pending":
+      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
     default:
       return "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400";
   }
@@ -56,6 +58,19 @@ export function PlayerPool({
   const currentPlayerStatus = players.find(
     (p) => p.user?.id === currentUserId
   )?.status;
+  const isPending = currentPlayerStatus === "pending";
+
+  async function handleAdmitReject(playerId: string, action: "admit" | "reject") {
+    if (!sessionId) return;
+    setLoading(true);
+    await fetch(`/api/sessions/${sessionId}/players`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerId, action }),
+    });
+    setLoading(false);
+    router.refresh();
+  }
 
   async function addAllMembers() {
     if (!sessionId || !clubMembers) return;
@@ -111,7 +126,7 @@ export function PlayerPool({
   }
 
   const activePlayers = players.filter((p) => p.status !== "removed");
-  const order = ["playing", "selected", "available", "resting", "removed"];
+  const order = ["pending", "playing", "selected", "available", "resting", "removed"];
   const sorted = [...activePlayers].sort(
     (a, b) => order.indexOf(a.status) - order.indexOf(b.status)
   );
@@ -143,11 +158,17 @@ export function PlayerPool({
             disabled={loading}
             className="rounded-lg bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
           >
-            {loading ? "Joining..." : "Join Session"}
+            {loading ? "Requesting..." : "Request to Join"}
           </button>
         )}
 
-        {!isManager && sessionId && isInSession && (
+        {!isManager && sessionId && isPending && (
+          <span className="rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-1.5 text-sm font-medium text-yellow-700 dark:border-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-400">
+            ⏳ Request Pending
+          </span>
+        )}
+
+        {!isManager && sessionId && isInSession && !isPending && (
           <button
             onClick={leaveSession}
             disabled={loading}
@@ -222,12 +243,31 @@ export function PlayerPool({
                   </td>
                   {isManager && (
                     <td className="px-4 py-2.5 text-right">
-                      <button
-                        onClick={() => player.user && removePlayer(player.user.id, player.user.full_name || "this player")}
-                        className="text-xs text-red-500 hover:text-red-700"
-                      >
-                        Remove
-                      </button>
+                      {player.status === "pending" ? (
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => player.user && handleAdmitReject(player.user.id, "admit")}
+                            disabled={loading}
+                            className="text-xs font-medium text-green-600 hover:text-green-800 disabled:opacity-50"
+                          >
+                            Admit
+                          </button>
+                          <button
+                            onClick={() => player.user && handleAdmitReject(player.user.id, "reject")}
+                            disabled={loading}
+                            className="text-xs font-medium text-red-500 hover:text-red-700 disabled:opacity-50"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => player.user && removePlayer(player.user.id, player.user.full_name || "this player")}
+                          className="text-xs text-red-500 hover:text-red-700"
+                        >
+                          Remove
+                        </button>
+                      )}
                     </td>
                   )}
                 </tr>

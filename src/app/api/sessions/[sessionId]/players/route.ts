@@ -36,16 +36,19 @@ export async function POST(
   }
 
   // Non-managers can only add themselves
+  const isManagerRole = membership.role === "manager";
   const isSelfOnly = playerIds.length === 1 && playerIds[0] === user.id;
-  if (membership.role !== "manager" && !isSelfOnly) {
+  if (!isManagerRole && !isSelfOnly) {
     return NextResponse.json({ error: "You can only add yourself" }, { status: 403 });
   }
 
   const admin = createAdminClient();
+
+  // Non-managers join as "pending" (need manager approval), managers add as "available"
   const rows = playerIds.map((pid: string) => ({
     session_id: sessionId,
     user_id: pid,
-    status: "available" as const,
+    status: (isManagerRole ? "available" : "pending") as string,
     play_count: 0,
   }));
 
@@ -56,6 +59,61 @@ export async function POST(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, added: playerIds.length });
+}
+
+// Admit or reject a pending player (managers only)
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ sessionId: string }> }
+) {
+  const { sessionId } = await params;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { playerId, action } = await request.json();
+  if (!playerId || !["admit", "reject"].includes(action)) {
+    return NextResponse.json({ error: "playerId and action (admit/reject) required" }, { status: 400 });
+  }
+
+  const { data: session } = await supabase
+    .from("sessions")
+    .select("club_id")
+    .eq("id", sessionId)
+    .single();
+  if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
+
+  // Only managers can admit/reject
+  const { data: membership } = await supabase
+    .from("club_members")
+    .select("role")
+    .eq("club_id", session.club_id)
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .single();
+  if (!membership || membership.role !== "manager") {
+    return NextResponse.json({ error: "Only managers can admit players" }, { status: 403 });
+  }
+
+  const admin = createAdminClient();
+
+  if (action === "admit") {
+    await admin
+      .from("session_players")
+      .update({ status: "available" })
+      .eq("session_id", sessionId)
+      .eq("user_id", playerId)
+      .eq("status", "pending");
+  } else {
+    await admin
+      .from("session_players")
+      .update({ status: "removed" })
+      .eq("session_id", sessionId)
+      .eq("user_id", playerId)
+      .eq("status", "pending");
+  }
+
+  return NextResponse.json({ ok: true, action });
 }
 
 // Remove player from session
