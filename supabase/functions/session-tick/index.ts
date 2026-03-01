@@ -197,17 +197,19 @@ async function promoteOrSelect(
           .eq("user_id", a.user_id);
 
         // Increment play count
-        await supabase.rpc("increment_play_count", {
-          p_session_id: session.id,
-          p_user_id: a.user_id,
-        }).catch(() => {
+        try {
+          await supabase.rpc("increment_play_count", {
+            p_session_id: session.id,
+            p_user_id: a.user_id,
+          });
+        } catch {
           // Fallback: raw update
-          supabase
+          await supabase
             .from("session_players")
             .update({ last_played_at: new Date().toISOString() })
             .eq("session_id", session.id)
             .eq("user_id", a.user_id);
-        });
+        }
       }
     }
 
@@ -395,13 +397,15 @@ async function runSelection(
         },
       );
       // Increment if exists — upsert doesn't do increment, so do a manual update
-      await supabase.rpc("increment_partner_history", {
-        p_session_id: session.id,
-        p_player1_id: pair.player1_id,
-        p_player2_id: pair.player2_id,
-      }).catch(() => {
+      try {
+        await supabase.rpc("increment_partner_history", {
+          p_session_id: session.id,
+          p_player1_id: pair.player1_id,
+          p_player2_id: pair.player2_id,
+        });
+      } catch {
         // RPC might not exist yet, partner_history upsert handles creation
-      });
+      }
     }
 
     if (assignmentStatus === "active") {
