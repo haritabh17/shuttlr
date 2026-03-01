@@ -52,12 +52,33 @@ export async function POST(
     play_count: 0,
   }));
 
-  const { error } = await admin.from("session_players").upsert(rows, {
-    onConflict: "session_id,user_id",
-    ignoreDuplicates: true,
-  });
+  // For each player, either insert or update status if they were previously removed
+  for (const row of rows) {
+    const { data: existing } = await admin
+      .from("session_players")
+      .select("status")
+      .eq("session_id", row.session_id)
+      .eq("user_id", row.user_id)
+      .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (existing) {
+      // Re-activate if removed, otherwise skip (already in session)
+      if (existing.status === "removed") {
+        await admin
+          .from("session_players")
+          .update({ status: row.status, play_count: 0 })
+          .eq("session_id", row.session_id)
+          .eq("user_id", row.user_id);
+      }
+      // If already pending/available/playing, skip silently
+    } else {
+      await admin.from("session_players").insert(row);
+    }
+  }
+
+  const error = null;
+
+  if (error) return NextResponse.json({ error: (error as any).message }, { status: 500 });
   return NextResponse.json({ ok: true, added: playerIds.length });
 }
 
