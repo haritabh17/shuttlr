@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PlayerName } from "./player-name";
+import { useSwap } from "./swap-context";
 
 interface Court {
   id: string;
@@ -35,6 +36,7 @@ export function CourtView({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
+  const { selected, select, loading: swapLoading } = useSwap();
 
   async function toggleLock(courtId: string) {
     setLoading(courtId);
@@ -94,23 +96,45 @@ export function CourtView({
 
             {courtPlayers.length > 0 ? (
               <div className="space-y-1.5">
-                {courtPlayers.map((a) => (
-                  <div
-                    key={a.id}
-                    className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-1.5 text-sm dark:bg-zinc-800"
-                  >
-                    <PlayerName
-                      name={a.user?.full_name || "Unknown"}
-                      gender={a.user?.gender}
-                      className="text-zinc-900 dark:text-zinc-100"
-                    />
-                    {isManager && (
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                        L{a.user?.level || "?"}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                {courtPlayers.map((a) => {
+                  const isSelected = selected?.id === a.user?.id;
+                  const isSwapTarget = selected && selected.id !== a.user?.id;
+
+                  return (
+                    <div
+                      key={a.id}
+                      onClick={() => {
+                        if (isManager && !isReadOnly && a.user && !swapLoading) {
+                          select({ id: a.user.id, source: "court" });
+                        }
+                      }}
+                      className={`flex items-center justify-between rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                        isManager && !isReadOnly ? "cursor-pointer" : ""
+                      } ${
+                        isSelected
+                          ? "bg-teal-100 ring-2 ring-teal-500 dark:bg-teal-900/40 dark:ring-teal-400"
+                          : isSwapTarget && isManager
+                          ? "bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/20 dark:hover:bg-teal-900/30"
+                          : "bg-zinc-50 dark:bg-zinc-800"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {isSelected && <span className="text-xs">🔄</span>}
+                        {isSwapTarget && isManager && <span className="text-xs opacity-40">↔</span>}
+                        <PlayerName
+                          name={a.user?.full_name || "Unknown"}
+                          gender={a.user?.gender}
+                          className="text-zinc-900 dark:text-zinc-100"
+                        />
+                      </div>
+                      {isManager && (
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                          L{a.user?.level || "?"}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-zinc-400 dark:text-zinc-500 italic">

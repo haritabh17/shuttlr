@@ -8,6 +8,7 @@ import { PlayerPool } from "@/components/player-pool";
 import { RealtimeNotification } from "@/components/realtime-notification";
 import { EditSessionSettings } from "@/components/edit-session-settings";
 import { NextUpPanel } from "@/components/next-up-panel";
+import { SwapProvider } from "@/components/swap-context";
 
 export default async function GamePage({
   params,
@@ -281,11 +282,12 @@ export default async function GamePage({
           currentRoundStartedAt={(session as any).current_round_started_at}
         />
 
+        <SwapProvider sessionId={sessionId} enabled={isManager && !isReadOnly}>
         {/* Courts */}
         <section>
           {/* Next Up — shown above current when available */}
           {upcomingCourts.length > 0 && (
-            <NextUpPanel courts={upcomingCourts} round={upcomingRound} isManager={isManager} />
+            <NextUpPanel courts={upcomingCourts} round={upcomingRound} isManager={isManager} isReadOnly={isReadOnly} />
           )}
 
           <div className={upcomingCourts.length > 0 ? "opacity-60 mt-6" : ""}>
@@ -323,6 +325,7 @@ export default async function GamePage({
             }))}
           />
         </section>
+        </SwapProvider>
       </main>
     </div>
   );

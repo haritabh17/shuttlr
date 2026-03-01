@@ -1,6 +1,7 @@
 "use client";
 
 import { PlayerName } from "./player-name";
+import { useSwap } from "./swap-context";
 
 interface Court {
   name: string;
@@ -17,9 +18,12 @@ interface NextUpPanelProps {
   courts: Court[];
   round: number;
   isManager?: boolean;
+  isReadOnly?: boolean;
 }
 
-export function NextUpPanel({ courts, round, isManager }: NextUpPanelProps) {
+export function NextUpPanel({ courts, round, isManager, isReadOnly }: NextUpPanelProps) {
+  const { selected, select, loading: swapLoading } = useSwap();
+
   if (courts.length === 0) return null;
 
   return (
@@ -55,23 +59,45 @@ export function NextUpPanel({ courts, round, isManager }: NextUpPanelProps) {
 
             {court.players.length > 0 ? (
               <div className="space-y-1.5">
-                {court.players.map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-1.5 text-sm dark:bg-zinc-800"
-                  >
-                    <PlayerName
-                      name={p.full_name}
-                      gender={p.gender}
-                      className="text-zinc-900 dark:text-zinc-100"
-                    />
-                    {isManager && (
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                        L{p.level || "?"}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                {court.players.map((p) => {
+                  const isSelected = selected?.id === p.id;
+                  const isSwapTarget = selected && selected.id !== p.id;
+
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => {
+                        if (isManager && !isReadOnly && !swapLoading) {
+                          select({ id: p.id, source: "court" });
+                        }
+                      }}
+                      className={`flex items-center justify-between rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                        isManager && !isReadOnly ? "cursor-pointer" : ""
+                      } ${
+                        isSelected
+                          ? "bg-teal-100 ring-2 ring-teal-500 dark:bg-teal-900/40 dark:ring-teal-400"
+                          : isSwapTarget && isManager
+                          ? "bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/20 dark:hover:bg-teal-900/30"
+                          : "bg-zinc-50 dark:bg-zinc-800"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {isSelected && <span className="text-xs">🔄</span>}
+                        {isSwapTarget && isManager && <span className="text-xs opacity-40">↔</span>}
+                        <PlayerName
+                          name={p.full_name}
+                          gender={p.gender}
+                          className="text-zinc-900 dark:text-zinc-100"
+                        />
+                      </div>
+                      {isManager && (
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                          L{p.level || "?"}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-sm text-zinc-400 dark:text-zinc-500 italic">

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AddPlayerModal } from "./add-player-modal";
 import { PlayerName } from "./player-name";
+import { useSwap } from "./swap-context";
 
 interface Player {
   id: string;
@@ -54,6 +55,7 @@ export function PlayerPool({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const { selected: swapSelected, select: swapSelect, loading: swapLoading } = useSwap();
 
   const isInSession = players.some(
     (p) => p.user?.id === currentUserId && p.status !== "removed"
@@ -229,20 +231,37 @@ export function PlayerPool({
               </tr>
             </thead>
             <tbody>
-              {sorted.map((player) => (
+              {sorted.map((player) => {
+                const canSwap = isManager && !isReadOnly && swapSelected &&
+                  swapSelected.source === "court" &&
+                  swapSelected.id !== player.user?.id &&
+                  ["available", "resting"].includes(player.status);
+                const isSwapHighlight = canSwap;
+
+                return (
                 <tr
                   key={player.id}
+                  onClick={() => {
+                    if (canSwap && player.user && !swapLoading) {
+                      swapSelect({ id: player.user.id, source: "pool" });
+                    }
+                  }}
                   className={`border-b border-zinc-50 last:border-0 dark:border-zinc-800/50 ${
-                    player.user?.id === currentUserId
+                    isSwapHighlight
+                      ? "bg-teal-50 hover:bg-teal-100 cursor-pointer dark:bg-teal-950/20 dark:hover:bg-teal-900/30"
+                      : player.user?.id === currentUserId
                       ? "bg-blue-50/50 dark:bg-blue-950/20"
                       : ""
                   }`}
                 >
                   <td className="px-4 py-2.5 text-zinc-900 dark:text-zinc-100">
-                    <PlayerName
-                      name={player.user?.full_name || "Unknown"}
-                      gender={player.user?.gender}
-                    />
+                    <div className="flex items-center gap-2">
+                      {isSwapHighlight && <span className="text-xs opacity-40">↔</span>}
+                      <PlayerName
+                        name={player.user?.full_name || "Unknown"}
+                        gender={player.user?.gender}
+                      />
+                    </div>
                     {player.user?.id === currentUserId && (
                       <span className="ml-1.5 text-xs text-blue-500">(you)</span>
                     )}
@@ -287,7 +306,8 @@ export function PlayerPool({
                     </td>
                   )}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
