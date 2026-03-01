@@ -376,6 +376,28 @@ async function runSelection(
       }
     }
 
+    // Build push context: court name + teammates for each player
+    const nameMap = new Map<string, string>();
+    for (const sp of sessionPlayers) {
+      if (sp.user) nameMap.set(sp.user.id, sp.user.full_name ?? "Player");
+    }
+
+    const playerContexts = new Map<string, PushContext>();
+    for (const court of assignments) {
+      const courtRecord = courts[court.court_index];
+      if (!courtRecord) continue;
+      const allPlayers = [...court.team_a, ...court.team_b];
+      for (const player of allPlayers) {
+        const teammates = allPlayers
+          .filter((p) => p.id !== player.id)
+          .map((p) => nameMap.get(p.id) ?? "Player");
+        playerContexts.set(player.id, {
+          courtName: courtRecord.name,
+          teammates,
+        });
+      }
+    }
+
     if (assignmentRows.length > 0) {
       await supabase.from("court_assignments").insert(assignmentRows);
     }
@@ -448,6 +470,8 @@ async function runSelection(
         selectedPlayerIds,
         newRound,
         serviceRoleKey,
+        false,
+        playerContexts,
       );
     } else {
       // Upcoming: just mark session and release lock
@@ -467,6 +491,7 @@ async function runSelection(
         newRound,
         serviceRoleKey,
         true,
+        playerContexts,
       );
     }
 
@@ -501,6 +526,11 @@ async function getMaxRound(supabase: any, sessionId: string): Promise<number> {
   return data?.[0]?.round ?? 0;
 }
 
+interface PushContext {
+  courtName: string;
+  teammates: string[]; // names of the other 3 players
+}
+
 async function sendPushNotifications(
   supabase: any,
   session: any,
@@ -508,29 +538,48 @@ async function sendPushNotifications(
   round: number,
   serviceRoleKey: string,
   isUpcoming = false,
+  playerContexts?: Map<string, PushContext>,
 ) {
   if (playerIds.length === 0) return;
 
-  try {
-    const appUrl = Deno.env.get("APP_URL") || "https://beta.shuttlrs.com";
-    await fetch(`${appUrl}/api/push/send`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${serviceRoleKey}`,
-      },
-      body: JSON.stringify({
-        userIds: playerIds,
-        title: isUpcoming ? "🔜 You're up next!" : "🏸 You're up!",
-        body: isUpcoming
-          ? `Round ${round} — Get ready!`
-          : `Round ${round} — Head to your court!`,
-        tag: `round-${session.id}-${round}${isUpcoming ? "-upcoming" : ""}`,
-        url: `/clubs/${session.club_id}/sessions/${session.id}`,
-      }),
-    });
-  } catch (err) {
-    console.error("Push notification failed:", err);
+  const appUrl = Deno.env.get("APP_URL") || "https://beta.shuttlrs.com";
+  const sessionUrl = `/clubs/${session.club_id}/sessions/${session.id}`;
+  const tag = `round-${session.id}-${round}${isUpcoming ? "-upcoming" : ""}`;
+
+  // Send per-player notifications with court + teammate details
+  for (const playerId of playerIds) {
+    const ctx = playerContexts?.get(playerId);
+    let body: string;
+
+    if (ctx) {
+      const others = ctx.teammates.join(", ");
+      body = isUpcoming
+        ? `Round ${round} · ${ctx.courtName}\nWith: ${others}`
+        : `Round ${round} · ${ctx.courtName}\nWith: ${others}`;
+    } else {
+      body = isUpcoming
+        ? `Round ${round} — Get ready!`
+        : `Round ${round} — Head to your court!`;
+    }
+
+    try {
+      await fetch(`${appUrl}/api/push/send`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify({
+          userIds: [playerId],
+          title: isUpcoming ? "🔜 You're up next!" : "🏸 You're up!",
+          body,
+          tag,
+          url: sessionUrl,
+        }),
+      });
+    } catch (err) {
+      console.error(`Push failed for ${playerId}:`, err);
+    }
   }
 }
 
