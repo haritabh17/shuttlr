@@ -30,8 +30,9 @@
 
 - Concurrent running sessions: 1 (free) / 3 (Pro)
 - Total sessions per club (including soft-deleted): 100 (free) / 500 (Pro)
+- **Remove** the existing 4 sessions/month limit (DB trigger `on_session_started` + `session_usage` table)
 - Enforce in create-session and start-session flows
-- Show count in subscription status card: "Sessions this month: 2 / 4"
+- Show count in subscription status card: "Total sessions: 12 / 100"
 
 ## 4. Subscription Banner Improvements
 **Priority:** Medium (UX)
@@ -39,14 +40,13 @@
 - Show plan comparison in upgrade banner:
   | Feature          | Free        | Pro          |
   |-----------------|-------------|--------------|
-  | Sessions/month   | 4           | Unlimited    |
   | Total sessions   | 100         | 500          |
   | Members/club     | 100         | 300          |
   | Clubs managed    | 3           | 10           |
   | Concurrent games | 1           | 3            |
 - Show current usage in subscription status card:
-  - "Sessions this month: 2 / 4"
   - "Total sessions: 12 / 100"
   - "Members: 47 / 100"
+  - "Concurrent games: 0 / 1"
 - Collapsed state (free): show upgrade button alongside plan badge
 - Managers-only visibility (already the case)
