@@ -8,7 +8,7 @@ import { AddMemberButton } from "@/components/add-member-button";
 import { EventLog } from "@/components/event-log";
 import { DeletedSessions } from "@/components/deleted-sessions";
 import { LeaveClubButton } from "@/components/leave-club-button";
-import { UpgradeButton } from "@/components/upgrade-button";
+import { PlanUsageCard } from "@/components/plan-usage-card";
 import { LIMITS } from "@/lib/limits";
 
 export default async function ClubPage({
@@ -110,6 +110,14 @@ export default async function ClubPage({
 
   const isPro = subscription?.status === "active" || subscription?.status === "trialing";
 
+  // Count running sessions for concurrent limit
+  const { data: runningSessions } = await supabase
+    .from("sessions")
+    .select("id")
+    .eq("club_id", club.id)
+    .eq("status", "running");
+  const runningCount = runningSessions?.length ?? 0;
+
   // Fetch soft-deleted sessions (within 1 month) for managers
   const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { data: deletedSessions } = isManager
@@ -153,10 +161,17 @@ export default async function ClubPage({
       <main className="mx-auto max-w-4xl px-4 py-8 space-y-8">
         {/* Subscription Banner */}
         {isManager && (
-          <UpgradeButton
+          <PlanUsageCard
+            isPro={isPro}
+            plan={subscription?.plan}
+            billingCycle={subscription?.billing_cycle}
+            currentPeriodEnd={subscription?.current_period_end}
+            trialEndsAt={subscription?.trial_ends_at}
+            memberCount={members?.length ?? 0}
+            totalSessions={(sessions?.length ?? 0) + (deletedSessions?.length ?? 0)}
+            runningSessions={runningCount}
             clubId={club.id}
-            subscription={subscription}
-            sessionCount={usage?.session_count ?? 0}
+            clubSlug={club.slug}
           />
         )}
 
