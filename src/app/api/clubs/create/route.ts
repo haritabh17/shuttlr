@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-const FREE_CLUB_LIMIT = 3;
-const PRO_CLUB_LIMIT = 10;
+import { LIMITS } from "@/lib/limits";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -45,11 +43,11 @@ export async function POST(request: Request) {
     hasPro = (subs?.length ?? 0) > 0;
   }
 
-  const limit = hasPro ? PRO_CLUB_LIMIT : FREE_CLUB_LIMIT;
+  const limit = hasPro ? LIMITS.pro.clubs : LIMITS.free.clubs;
 
   if (managedCount >= limit) {
     return NextResponse.json({
-      error: `You can manage up to ${limit} clubs${hasPro ? "" : " on the free plan. Upgrade to Pro for up to " + PRO_CLUB_LIMIT}`,
+      error: `You can manage up to ${limit} clubs${hasPro ? "" : " on the free plan. Upgrade to Pro for up to " + LIMITS.pro.clubs}`,
     }, { status: 403 });
   }
 

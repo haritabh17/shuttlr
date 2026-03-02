@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
-export function AddMemberButton({ clubId }: { clubId: string }) {
+export function AddMemberButton({ clubId, memberCount, memberLimit }: { clubId: string; memberCount: number; memberLimit: number }) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -14,10 +14,15 @@ export function AddMemberButton({ clubId }: { clubId: string }) {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
+  const atLimit = memberCount >= memberLimit;
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (atLimit) {
+      setError(`Member limit reached (${memberLimit}). Upgrade to add more.`);
+      return;
+    }
     setLoading(true);
 
     // Check if user exists by email
@@ -93,12 +98,18 @@ export function AddMemberButton({ clubId }: { clubId: string }) {
 
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-      >
-        Add Member
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => !atLimit && setOpen(true)}
+          disabled={atLimit}
+          className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+        >
+          Add Member
+        </button>
+        {atLimit && (
+          <span className="text-xs text-zinc-500">Limit reached</span>
+        )}
+      </div>
     );
   }
 

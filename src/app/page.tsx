@@ -64,7 +64,8 @@ export default async function Home() {
       .in("status", ["active", "trialing"]);
     hasPro = ((subs as any[]) ?? []).length > 0;
   }
-  const clubLimit = hasPro ? 10 : 3;
+  const { LIMITS } = await import("@/lib/limits");
+  const clubLimit = hasPro ? LIMITS.pro.clubs : LIMITS.free.clubs;
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">

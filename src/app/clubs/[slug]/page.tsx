@@ -9,6 +9,7 @@ import { EventLog } from "@/components/event-log";
 import { DeletedSessions } from "@/components/deleted-sessions";
 import { LeaveClubButton } from "@/components/leave-club-button";
 import { UpgradeButton } from "@/components/upgrade-button";
+import { LIMITS } from "@/lib/limits";
 
 export default async function ClubPage({
   params,
@@ -107,6 +108,8 @@ export default async function ClubPage({
     .eq("month", currentMonth)
     .single();
 
+  const isPro = subscription?.status === "active" || subscription?.status === "trialing";
+
   // Fetch soft-deleted sessions (within 1 month) for managers
   const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { data: deletedSessions } = isManager
@@ -174,7 +177,13 @@ export default async function ClubPage({
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               Members ({members?.length ?? 0})
             </h2>
-            {isManager && <AddMemberButton clubId={club.id} />}
+            {isManager && (
+              <AddMemberButton
+                clubId={club.id}
+                memberCount={members?.length ?? 0}
+                memberLimit={isPro ? LIMITS.pro.members : LIMITS.free.members}
+              />
+            )}
           </div>
           <MemberList members={members ?? []} isManager={isManager} clubId={club.id} />
         </section>
