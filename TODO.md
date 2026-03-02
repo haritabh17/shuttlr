@@ -30,7 +30,7 @@
 **Priority:** High (abuse prevention + edge function resource protection)
 
 - Concurrent running sessions: 1 (free) / 3 (Pro)
-- Total sessions per club (including soft-deleted): 50 (free) / 200 (Pro)
+- Total sessions per club (including soft-deleted): 100 (free) / 500 (Pro)
 - Enforce in create-session and start-session flows
 - Show count in subscription status card: "Sessions this month: 2 / 4"
 
