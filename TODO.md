@@ -3,8 +3,7 @@
 ## 1. Per-User Club Creation Limits
 **Priority:** High (abuse prevention)
 
-- Max 3 clubs created per user (free), 10 if any of their clubs is Pro
-- Max 5 clubs managed total (creator + promoted manager)
+- Max 3 clubs created/managed per user (free), 10 if any of their clubs is Pro
 - Enforce in `create-club-button.tsx` API call and backend
 - Query: `club_members WHERE user_id = X AND role = 'manager' AND status = 'active'`
 - Show friendly error: "You've reached the maximum number of clubs"
