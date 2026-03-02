@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
-export function CreateClubButton() {
+export function CreateClubButton({ managedCount, limit }: { managedCount: number; limit: number }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -12,82 +11,55 @@ export function CreateClubButton() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
 
-  function generateSlug(name: string) {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
-  }
+  const atLimit = managedCount >= limit;
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      setError("Not authenticated");
-      setLoading(false);
-      return;
-    }
-
-    const slug = generateSlug(name) + "-" + Date.now().toString(36);
-
-    // Create club
-    const { data: club, error: clubError } = await supabase
-      .from("clubs")
-      .insert({
-        name,
-        slug,
-        description,
-        visibility,
-        created_by: user.id,
-      })
-      .select()
-      .single();
-
-    if (clubError) {
-      setError(clubError.message);
-      setLoading(false);
-      return;
-    }
-
-    // Add creator as manager
-    const { error: memberError } = await supabase
-      .from("club_members")
-      .insert({
-        club_id: club.id,
-        user_id: user.id,
-        role: "manager",
-        status: "active",
+    try {
+      const res = await fetch("/api/clubs/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, description, visibility }),
       });
+      const data = await res.json();
 
-    if (memberError) {
-      setError(memberError.message);
+      if (!res.ok) {
+        setError(data.error || "Failed to create club");
+        setLoading(false);
+        return;
+      }
+
       setLoading(false);
-      return;
+      setOpen(false);
+      setName("");
+      setDescription("");
+      router.refresh();
+    } catch {
+      setError("Network error — try again");
+      setLoading(false);
     }
-
-    setLoading(false);
-    setOpen(false);
-    setName("");
-    setDescription("");
-    router.refresh();
   }
 
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-      >
-        Create Club
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => !atLimit && setOpen(true)}
+          disabled={atLimit}
+          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        >
+          Create Club
+        </button>
+        {atLimit && (
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+            {limit} club limit reached
+          </span>
+        )}
+      </div>
     );
   }
 
@@ -97,6 +69,9 @@ export function CreateClubButton() {
         <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
           Create a Club
         </h3>
+        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+          {managedCount} of {limit} clubs used
+        </p>
 
         <form onSubmit={handleCreate} className="mt-4 space-y-4">
           <div>

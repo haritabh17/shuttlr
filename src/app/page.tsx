@@ -53,6 +53,19 @@ export default async function Home() {
   const managedClubs = clubs.filter((c) => c.role === "manager");
   const playerClubs = clubs.filter((c) => c.role === "player");
 
+  // Check if user has any Pro club (for club creation limit)
+  const managedClubIds = managedClubs.map((c: any) => c.id).filter(Boolean);
+  let hasPro = false;
+  if (managedClubIds.length > 0) {
+    const { data: subs } = await supabase
+      .from("club_subscriptions" as any)
+      .select("club_id, status")
+      .in("club_id", managedClubIds)
+      .in("status", ["active", "trialing"]);
+    hasPro = ((subs as any[]) ?? []).length > 0;
+  }
+  const clubLimit = hasPro ? 10 : 3;
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <PushNotificationPrompt />
@@ -90,7 +103,7 @@ export default async function Home() {
           <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
             My Clubs
           </h2>
-          <CreateClubButton />
+          <CreateClubButton managedCount={managedClubs.length} limit={clubLimit} />
         </div>
 
         {clubs.length === 0 ? (
