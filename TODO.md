@@ -37,12 +37,16 @@
 **Priority:** Medium (UX)
 
 - Show plan comparison in upgrade banner:
-  | Feature        | Free        | Pro          |
-  |---------------|-------------|--------------|
-  | Sessions/month | 4           | Unlimited    |
-  | Members/club   | 100         | 300          |
-  | Clubs created  | 3           | 10           |
+  | Feature          | Free        | Pro          |
+  |-----------------|-------------|--------------|
+  | Sessions/month   | 4           | Unlimited    |
+  | Total sessions   | 100         | 500          |
+  | Members/club     | 100         | 300          |
+  | Clubs managed    | 3           | 10           |
+  | Concurrent games | 1           | 3            |
 - Show current usage in subscription status card:
   - "Sessions this month: 2 / 4"
+  - "Total sessions: 12 / 100"
   - "Members: 47 / 100"
+- Collapsed state (free): show upgrade button alongside plan badge
 - Managers-only visibility (already the case)
