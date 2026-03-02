@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { AlgorithmSettings } from "@/components/algorithm-settings";
 
-export function CreateSessionButton({ clubId, clubName }: { clubId: string; clubName?: string }) {
+export function CreateSessionButton({ clubId, clubName, sessionCount, sessionLimit }: { clubId: string; clubName?: string; sessionCount: number; sessionLimit: number }) {
   const [open, setOpen] = useState(false);
   const defaultName = `${clubName || "Session"} — ${new Date().toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`;
   const [name, setName] = useState(defaultName);
@@ -33,32 +33,11 @@ export function CreateSessionButton({ clubId, clubName }: { clubId: string; club
 
     setLoading(true);
 
-    // Check session limits
-    const { data: sub } = await (supabase as any)
-      .from("club_subscriptions")
-      .select("plan, status, trial_ends_at")
-      .eq("club_id", clubId)
-      .single();
-
-    const isTrialing = sub?.status === "trialing" && sub?.trial_ends_at && new Date(sub.trial_ends_at) > new Date();
-    const isPro = sub?.plan === "pro" && sub?.status === "active";
-
-    if (!isTrialing && !isPro) {
-      // Free plan — check monthly limit
-      const currentMonth = new Date().toISOString().slice(0, 7); // '2026-02'
-      const { data: usage } = await (supabase as any)
-        .from("session_usage")
-        .select("session_count")
-        .eq("club_id", clubId)
-        .eq("month", currentMonth)
-        .single();
-
-      const FREE_LIMIT = 4;
-      if ((usage?.session_count ?? 0) >= FREE_LIMIT) {
-        setError(`Free plan limit reached (${FREE_LIMIT} sessions/month). Upgrade to Pro for unlimited sessions.`);
-        setLoading(false);
-        return;
-      }
+    // Check total session limit
+    if (sessionCount >= sessionLimit) {
+      setError(`Session limit reached (${sessionLimit}). Upgrade to Pro for more.`);
+      setLoading(false);
+      return;
     }
 
     const { error: err } = await supabase.from("sessions").insert({

@@ -15,6 +15,8 @@ interface GameControlsProps {
   canResurrect?: boolean;
   clubId: string;
   clubSlug: string;
+  runningCount?: number;
+  concurrentLimit?: number;
 }
 
 export function GameControls({
@@ -23,12 +25,26 @@ export function GameControls({
   isReadOnly,
   canResurrect,
   clubSlug,
+  runningCount = 0,
+  concurrentLimit = 1,
 }: GameControlsProps) {
   const supabase = createClient();
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function updateStatus(newStatus: string) {
+    setError(null);
+    // Check concurrent limit when starting a session
+    if (newStatus === "running" && session.status !== "running") {
+      // Count currently running sessions (excluding this one which is about to start)
+      const currentRunning = session.status === "running" ? runningCount : runningCount;
+      if (currentRunning >= concurrentLimit) {
+        setError(`Concurrent session limit reached (${concurrentLimit}). End another session first${concurrentLimit === 1 ? " or upgrade to Pro" : ""}.`);
+        return;
+      }
+    }
+
     setLoading(newStatus);
     const updates: Record<string, unknown> = { status: newStatus };
     if (newStatus === "running" && session.status === "initiated") {
@@ -102,7 +118,11 @@ export function GameControls({
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div>
+      {error && (
+        <p className="mb-2 text-sm text-red-500">{error}</p>
+      )}
+      <div className="flex flex-wrap gap-2">
       {session.status === "draft" && (
         <button
           onClick={() => updateStatus("initiated")}
@@ -182,6 +202,7 @@ export function GameControls({
           Delete
         </button>
       )}
+    </div>
     </div>
   );
 }

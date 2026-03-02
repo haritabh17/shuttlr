@@ -166,7 +166,14 @@ export default async function ClubPage({
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               Sessions
             </h2>
-            {isManager && <CreateSessionButton clubId={club.id} clubName={club.name} />}
+            {isManager && (
+              <CreateSessionButton
+                clubId={club.id}
+                clubName={club.name}
+                sessionCount={(sessions?.length ?? 0) + (deletedSessions?.length ?? 0)}
+                sessionLimit={isPro ? LIMITS.pro.totalSessions : LIMITS.free.totalSessions}
+              />
+            )}
           </div>
           <SessionList sessions={sessions ?? []} clubSlug={club.slug} />
         </section>

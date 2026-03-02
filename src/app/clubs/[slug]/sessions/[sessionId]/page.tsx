@@ -9,6 +9,7 @@ import { RealtimeNotification } from "@/components/realtime-notification";
 import { EditSessionSettings } from "@/components/edit-session-settings";
 import { NextUpPanel } from "@/components/next-up-panel";
 import { SwapProvider } from "@/components/swap-context";
+import { LIMITS } from "@/lib/limits";
 
 export default async function GamePage({
   params,
@@ -190,6 +191,22 @@ export default async function GamePage({
   }
   const upcomingCourts = Object.values(upcomingByCourtId);
 
+  // Concurrent session limit
+  const { data: runningSessions } = await supabase
+    .from("sessions")
+    .select("id")
+    .eq("club_id", club.id)
+    .eq("status", "running");
+  const runningCount = runningSessions?.length ?? 0;
+
+  const { data: clubSub } = await (supabase as any)
+    .from("club_subscriptions")
+    .select("status")
+    .eq("club_id", club.id)
+    .single();
+  const isClubPro = clubSub?.status === "active" || clubSub?.status === "trialing";
+  const concurrentLimit = isClubPro ? LIMITS.pro.concurrentSessions : LIMITS.free.concurrentSessions;
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Real-time notifications */}
@@ -269,6 +286,8 @@ export default async function GamePage({
           canResurrect={canResurrect || false}
           clubId={club.id}
           clubSlug={slug}
+          runningCount={runningCount}
+          concurrentLimit={concurrentLimit}
         />
 
         {/* Selection Timer */}
