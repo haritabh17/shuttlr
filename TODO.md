@@ -26,18 +26,7 @@
   - When at limit: "Upgrade to Pro for up to 300 members"
 - Display in upgrade banner: "Free: 100 members · Pro: 300 members"
 
-## 3. Anti-Abuse: Club Creation Rate Limiting
-**Priority:** Medium (scripted attack prevention)
-
-- Server-side rate limit: max 1 club per hour per user, max 3 per day
-- Options:
-  - Simple: timestamp column `last_club_created_at` on profiles
-  - Better: lightweight `rate_limits` table (user_id, action, timestamp)
-  - Cheapest: just count clubs created in last 24h from `clubs.created_at`
-- Return 429 Too Many Requests with retry-after header
-- No UI needed — legitimate users won't hit this
-
-## 4. Subscription Banner Improvements
+## 3. Subscription Banner Improvements
 **Priority:** Medium (UX)
 
 - Show plan comparison in upgrade banner:
