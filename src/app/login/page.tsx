@@ -55,7 +55,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col lg:flex-row bg-zinc-950">
       {/* Hero Section */}
-      <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-8 py-16 lg:py-0">
+      <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-8 py-16 lg:py-0 lg:max-w-[50%]">
         {/* Dark gradient background with subtle teal */}
         <div className="absolute inset-0 bg-gradient-to-b from-teal-900/40 via-emerald-900/30 to-zinc-950" />
         <div className="absolute inset-0 bg-gradient-to-br from-teal-500/15 via-transparent to-emerald-500/10" />
@@ -106,7 +106,7 @@ export default function LoginPage() {
       </div>
 
       {/* Login Section */}
-      <div className="flex flex-1 items-center justify-center px-8 py-12 lg:max-w-xl">
+      <div className="flex flex-1 items-center justify-center px-8 py-12 lg:max-w-[50%]">
         <div className="w-full max-w-sm space-y-6">
           <div>
             <h2 className="text-2xl font-bold text-white">
