@@ -23,12 +23,12 @@ function UsageBar({ label, current, max, showInfinity }: { label: string; curren
   return (
     <div className="mb-3 last:mb-0">
       <div className="flex justify-between text-xs mb-1">
-        <span className="text-zinc-500 dark:text-zinc-400">{label}</span>
-        <span className="text-zinc-300 font-medium">
+        <span className="text-teal-700 dark:text-teal-400">{label}</span>
+        <span className="text-teal-900 dark:text-teal-200 font-medium">
           {current} / {showInfinity ? "∞" : max}
         </span>
       </div>
-      <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-teal-200 dark:bg-teal-800 rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${showInfinity ? Math.min(current, 5) : pct}%` }} />
       </div>
     </div>
@@ -92,23 +92,23 @@ export function PlanUsageCard({
   }
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
+    <div className="rounded-xl border border-teal-200 bg-teal-50 overflow-hidden dark:border-teal-900 dark:bg-teal-950">
       {/* Warning strip */}
       {warnings.length > 0 && (
-        <div className="px-4 py-2 bg-amber-950/30 border-b border-amber-900/30 text-xs text-amber-400">
+        <div className="px-4 py-2 bg-amber-100 border-b border-amber-200 text-xs text-amber-700 dark:bg-amber-950/30 dark:border-amber-900/30 dark:text-amber-400">
           ⚠️ {warnings[0]}
         </div>
       )}
 
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-zinc-800/50 transition-colors"
+        className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-teal-100/50 dark:hover:bg-teal-900/50 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-2.5">
-          <h3 className="text-sm font-semibold text-zinc-100">Plan & Usage</h3>
+          <h3 className="text-sm font-semibold text-teal-900 dark:text-teal-100">Plan & Usage</h3>
           <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-            isPro ? "bg-teal-900/40 text-teal-400" : "bg-zinc-800 text-zinc-400"
+            isPro ? "bg-teal-200 text-teal-800 dark:bg-teal-800 dark:text-teal-200" : "bg-teal-200/60 text-teal-700 dark:bg-teal-900/60 dark:text-teal-400"
           }`}>
             {isPro ? "Pro" : "Free"}
           </span>
@@ -118,12 +118,12 @@ export function PlanUsageCard({
             <button
               onClick={(e) => { e.stopPropagation(); handleUpgrade(); }}
               disabled={loading}
-              className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-teal-700 text-teal-50 hover:bg-teal-600 disabled:opacity-50"
+              className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50"
             >
               {loading ? "..." : "Upgrade"}
             </button>
           )}
-          <span className="text-zinc-600 text-xs">{expanded ? "▲" : "▼"}</span>
+          <span className="text-teal-400 dark:text-teal-600 text-xs">{expanded ? "▲" : "▼"}</span>
         </div>
       </div>
 
@@ -134,22 +134,22 @@ export function PlanUsageCard({
           {isPro && (
             <>
               <div className="flex justify-between text-xs py-1">
-                <span className="text-zinc-600">Plan</span>
-                <span className="text-zinc-300">Pro {billingCycle === "yearly" ? "Yearly" : "Monthly"}</span>
+                <span className="text-teal-600 dark:text-teal-500">Plan</span>
+                <span className="text-teal-900 dark:text-teal-200">Pro {billingCycle === "yearly" ? "Yearly" : "Monthly"}</span>
               </div>
               {currentPeriodEnd && (
                 <div className="flex justify-between text-xs py-1">
-                  <span className="text-zinc-600">Next billing</span>
-                  <span className="text-zinc-300">{new Date(currentPeriodEnd).toLocaleDateString("en-IE", { day: "numeric", month: "short", year: "numeric" })}</span>
+                  <span className="text-teal-600 dark:text-teal-500">Next billing</span>
+                  <span className="text-teal-900 dark:text-teal-200">{new Date(currentPeriodEnd).toLocaleDateString("en-IE", { day: "numeric", month: "short", year: "numeric" })}</span>
                 </div>
               )}
               {trialEndsAt && new Date(trialEndsAt) > new Date() && (
                 <div className="flex justify-between text-xs py-1">
-                  <span className="text-zinc-600">Trial ends</span>
-                  <span className="text-zinc-300">{new Date(trialEndsAt).toLocaleDateString("en-IE", { day: "numeric", month: "short", year: "numeric" })}</span>
+                  <span className="text-teal-600 dark:text-teal-500">Trial ends</span>
+                  <span className="text-teal-900 dark:text-teal-200">{new Date(trialEndsAt).toLocaleDateString("en-IE", { day: "numeric", month: "short", year: "numeric" })}</span>
                 </div>
               )}
-              <div className="h-px bg-zinc-800 my-3" />
+              <div className="h-px bg-teal-200 dark:bg-teal-800 my-3" />
             </>
           )}
 
@@ -161,35 +161,35 @@ export function PlanUsageCard({
           {/* Plan comparison (free only) */}
           {!isPro && (
             <>
-              <div className="h-px bg-zinc-800 my-3" />
+              <div className="h-px bg-teal-200 dark:bg-teal-800 my-3" />
               <table className="w-full text-xs">
                 <thead>
                   <tr>
-                    <th className="text-left py-1 text-zinc-600 font-semibold"></th>
-                    <th className="text-center py-1 text-zinc-600 font-semibold">Free</th>
-                    <th className="text-center py-1 text-teal-500 font-semibold">Pro</th>
+                    <th className="text-left py-1 text-teal-600 dark:text-teal-500 font-semibold"></th>
+                    <th className="text-center py-1 text-teal-600 dark:text-teal-500 font-semibold">Free</th>
+                    <th className="text-center py-1 text-teal-800 dark:text-teal-300 font-semibold">Pro</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td className="py-1.5 text-zinc-400">Total sessions</td>
-                    <td className="text-center text-zinc-500">{LIMITS.free.totalSessions}</td>
-                    <td className="text-center text-teal-400 font-medium">{LIMITS.pro.totalSessions}</td>
+                    <td className="py-1.5 text-teal-700 dark:text-teal-400">Total sessions</td>
+                    <td className="text-center text-teal-600 dark:text-teal-500">{LIMITS.free.totalSessions}</td>
+                    <td className="text-center text-teal-900 dark:text-teal-200 font-medium">{LIMITS.pro.totalSessions}</td>
                   </tr>
                   <tr>
-                    <td className="py-1.5 text-zinc-400">Members</td>
-                    <td className="text-center text-zinc-500">{LIMITS.free.members}</td>
-                    <td className="text-center text-teal-400 font-medium">{LIMITS.pro.members}</td>
+                    <td className="py-1.5 text-teal-700 dark:text-teal-400">Members</td>
+                    <td className="text-center text-teal-600 dark:text-teal-500">{LIMITS.free.members}</td>
+                    <td className="text-center text-teal-900 dark:text-teal-200 font-medium">{LIMITS.pro.members}</td>
                   </tr>
                   <tr>
-                    <td className="py-1.5 text-zinc-400">Clubs managed</td>
-                    <td className="text-center text-zinc-500">{LIMITS.free.clubs}</td>
-                    <td className="text-center text-teal-400 font-medium">{LIMITS.pro.clubs}</td>
+                    <td className="py-1.5 text-teal-700 dark:text-teal-400">Clubs managed</td>
+                    <td className="text-center text-teal-600 dark:text-teal-500">{LIMITS.free.clubs}</td>
+                    <td className="text-center text-teal-900 dark:text-teal-200 font-medium">{LIMITS.pro.clubs}</td>
                   </tr>
                   <tr>
-                    <td className="py-1.5 text-zinc-400">Concurrent games</td>
-                    <td className="text-center text-zinc-500">{LIMITS.free.concurrentSessions}</td>
-                    <td className="text-center text-teal-400 font-medium">{LIMITS.pro.concurrentSessions}</td>
+                    <td className="py-1.5 text-teal-700 dark:text-teal-400">Concurrent games</td>
+                    <td className="text-center text-teal-600 dark:text-teal-500">{LIMITS.free.concurrentSessions}</td>
+                    <td className="text-center text-teal-900 dark:text-teal-200 font-medium">{LIMITS.pro.concurrentSessions}</td>
                   </tr>
                 </tbody>
               </table>
@@ -213,7 +213,7 @@ export function PlanUsageCard({
             <button
               onClick={handleManageBilling}
               disabled={loading}
-              className="w-full mt-3 py-2 rounded-lg text-xs border border-zinc-700 text-zinc-400 hover:bg-zinc-800 transition disabled:opacity-50"
+              className="w-full mt-3 py-2 rounded-lg text-xs border border-teal-300 text-teal-700 hover:bg-teal-100 dark:border-teal-700 dark:text-teal-300 dark:hover:bg-teal-900 transition disabled:opacity-50"
             >
               {loading ? "..." : "Manage Billing →"}
             </button>
