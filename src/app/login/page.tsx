@@ -55,7 +55,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col lg:flex-row bg-zinc-950">
       {/* Hero Section */}
-      <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-8 py-16 lg:py-0 lg:max-w-[50%]">
+      <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-8 py-16 lg:py-0">
         {/* Dark gradient background with subtle teal */}
         <div className="absolute inset-0 bg-gradient-to-b from-teal-900/40 via-emerald-900/30 to-zinc-950" />
         <div className="absolute inset-0 bg-gradient-to-br from-teal-500/15 via-transparent to-emerald-500/10" />
@@ -64,8 +64,8 @@ export default function LoginPage() {
         <div className="absolute -left-32 top-1/4 h-64 w-64 rounded-full bg-teal-500/10 blur-[100px]" />
         <div className="absolute -right-20 bottom-1/3 h-80 w-80 rounded-full bg-emerald-500/8 blur-[120px]" />
 
-        <div className="relative z-10 max-w-md text-center">
-          <div className="mb-8 flex items-center justify-center gap-3">
+        <div className="relative z-10 max-w-sm">
+          <div className="mb-8 flex items-center gap-3">
             <img src="/logo.png" alt="shuttlrs" className="h-12 w-12 rounded-xl" />
             <h1 className="text-3xl font-bold text-white tracking-tight">shuttlrs</h1>
           </div>
@@ -77,12 +77,12 @@ export default function LoginPage() {
             Not your group chat.
           </p>
 
-          <p className="mt-4 text-sm text-white/40 leading-relaxed max-w-sm mx-auto">
+          <p className="mt-4 text-sm text-white/40 leading-relaxed">
             Smart court rotation, fair player selection, and effortless session management for badminton clubs.
           </p>
 
           {/* Feature highlights */}
-          <div className="mt-10 space-y-4 text-left max-w-sm mx-auto">
+          <div className="mt-10 space-y-4">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-500/15 backdrop-blur-sm">
                 <span className="text-base">🏸</span>
@@ -106,7 +106,7 @@ export default function LoginPage() {
       </div>
 
       {/* Login Section */}
-      <div className="flex flex-1 items-center justify-center px-8 py-12 lg:max-w-[50%]">
+      <div className="flex flex-1 items-center justify-center px-8 py-12 lg:max-w-xl">
         <div className="w-full max-w-sm space-y-6">
           <div>
             <h2 className="text-2xl font-bold text-white">
