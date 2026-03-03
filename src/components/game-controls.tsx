@@ -193,7 +193,7 @@ export function GameControls({
         </button>
       )}
 
-      {isManager && (
+      {isManager && session.status === "draft" && (
         <button
           onClick={handleDelete}
           disabled={loading !== null}
