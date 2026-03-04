@@ -29,11 +29,12 @@ jobs:
       - name: Deploy to Vercel (Beta)
         run: |
           npm i -g vercel
-          vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }} \
+          DEPLOY_URL=$(vercel deploy --yes --token=${{ secrets.VERCEL_TOKEN }} \
             -e STRIPE_SECRET_KEY="${{ secrets.STRIPE_SECRET_KEY_TEST }}" \
             -e STRIPE_WEBHOOK_SECRET="${{ secrets.STRIPE_WEBHOOK_SECRET_TEST }}" \
             -e STRIPE_PRICE_MONTHLY="${{ secrets.STRIPE_PRICE_MONTHLY_TEST }}" \
-            -e STRIPE_PRICE_YEARLY="${{ secrets.STRIPE_PRICE_YEARLY_TEST }}"
+            -e STRIPE_PRICE_YEARLY="${{ secrets.STRIPE_PRICE_YEARLY_TEST }}")
+          vercel alias set "$DEPLOY_URL" beta.shuttlrs.com --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
