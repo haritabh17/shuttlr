@@ -68,9 +68,13 @@ export function PlanUsageCard({
         body: JSON.stringify({ clubId, billingCycle: "monthly" }),
       });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch {
-      // ignore
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Upgrade failed — please try again");
+      }
+    } catch (err) {
+      alert("Network error — please try again");
     }
     setLoading(false);
   }
@@ -84,9 +88,13 @@ export function PlanUsageCard({
         body: JSON.stringify({ clubId, clubSlug }),
       });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch {
-      // ignore
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Upgrade failed — please try again");
+      }
+    } catch (err) {
+      alert("Network error — please try again");
     }
     setLoading(false);
   }
