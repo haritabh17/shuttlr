@@ -1,3 +1,8 @@
+-- Add 'free' as valid subscription status
+ALTER TABLE club_subscriptions DROP CONSTRAINT IF EXISTS club_subscriptions_status_check;
+ALTER TABLE club_subscriptions ADD CONSTRAINT club_subscriptions_status_check
+  CHECK (status IN ('active', 'canceled', 'past_due', 'trialing', 'free'));
+
 -- Remove trial: new clubs start as free, no trial period
 CREATE OR REPLACE FUNCTION create_club_subscription()
 RETURNS TRIGGER AS $$
