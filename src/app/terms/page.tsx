@@ -75,8 +75,8 @@ export default function TermsPage() {
               We use the following third-party services to operate shuttlrs. Each acts as a data processor under GDPR:
             </p>
             <ul className="mt-2 space-y-1.5 text-sm text-zinc-700 dark:text-zinc-300 list-disc pl-5">
-              <li><strong>Supabase</strong> (EU-West, AWS) — database, authentication, real-time features.</li>
-              <li><strong>Vercel</strong> (global edge network) — hosting and serverless functions.</li>
+              <li><strong>Supabase</strong> (EU-West, AWS Ireland) — database, authentication, real-time features.</li>
+              <li><strong>Vercel</strong> (global edge network) — hosting and serverless functions. Vercel may process data outside the EEA; they rely on Standard Contractual Clauses (SCCs) approved by the European Commission.</li>
               <li><strong>Google</strong> — OAuth sign-in (we receive your name, email, and profile picture).</li>
               <li><strong>Stripe</strong> — payment processing (we never see or store your card details).</li>
             </ul>
@@ -126,6 +126,7 @@ export default function TermsPage() {
               <li><strong>Erasure</strong> — request deletion of your account and all associated data.</li>
               <li><strong>Portability</strong> — request a copy of your data by emailing us.</li>
               <li><strong>Object</strong> — object to processing based on legitimate interest.</li>
+              <li><strong>Restriction</strong> — request we limit how we process your data while a complaint is being resolved.</li>
               <li><strong>Withdraw consent</strong> — turn off push notifications at any time.</li>
             </ul>
             <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
@@ -192,7 +193,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Contact</h2>
             <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
-              shuttlrs is operated by Haritabh Gupta, based in Dublin, Ireland.
+              The data controller is shuttlrs, a sole-proprietor operation based in Dublin, Ireland.
             </p>
             <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
               Questions, concerns, or data requests? Reach us at{" "}
@@ -200,6 +201,10 @@ export default function TermsPage() {
                 support@shuttlrs.com
               </a>.
               We&apos;ll respond within 30 days.
+            </p>
+            <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+              shuttlrs is not required to appoint a Data Protection Officer. For all data-related queries, contact{" "}
+              <a href="mailto:support@shuttlrs.com" className="text-teal-600 dark:text-teal-400 underline">support@shuttlrs.com</a>.
             </p>
             <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
               If you&apos;re not satisfied with our response, you have the right to lodge a complaint with the{" "}
