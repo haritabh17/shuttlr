@@ -68,7 +68,7 @@ export async function POST(request: Request) {
   // Deactivate the manager's own membership
   await admin
     .from("club_members")
-    .update({ status: "inactive" } as any)
+    .delete()
     .eq("club_id", clubId)
     .eq("user_id", user.id);
 

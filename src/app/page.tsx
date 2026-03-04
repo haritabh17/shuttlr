@@ -43,13 +43,14 @@ export default async function Home() {
     `)
     .eq("user_id", user.id)
     .eq("status", "active")
-    .is("clubs.deleted_at", null)
     .order("created_at", { ascending: false });
 
-  const clubs = memberships?.map((m) => ({
-    ...m.club,
-    role: m.role,
-  })) ?? [];
+  const clubs = memberships
+    ?.map((m) => ({
+      ...m.club,
+      role: m.role,
+    }))
+    .filter((c) => c.id) ?? [];
 
   const managedClubs = clubs.filter((c) => c.role === "manager");
   const playerClubs = clubs.filter((c) => c.role === "player");
