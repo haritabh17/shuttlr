@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { Footer } from "@/components/footer";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -53,7 +54,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row bg-zinc-950">
+    <div className="flex min-h-screen flex-col bg-zinc-950">
+      <div className="flex flex-1 flex-col lg:flex-row">
       {/* Hero Section */}
       <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-8 py-16 lg:py-0">
         {/* Dark gradient background with subtle teal */}
@@ -222,6 +224,8 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
+      </div>
+      <Footer />
     </div>
   );
 }

@@ -146,16 +146,6 @@ export default async function Home() {
           </div>
         )}
       </main>
-
-      <footer className="border-t border-zinc-200 dark:border-zinc-800 py-6 text-center text-xs text-zinc-400 dark:text-zinc-600">
-        <div className="flex items-center justify-center gap-3">
-          <span>Built for the love of the game 🏸</span>
-          <span>·</span>
-          <a href="https://github.com/haritabh17/shuttlrs" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-600 dark:hover:text-zinc-400 transition">Open Source on GitHub</a>
-          <span>·</span>
-          <a href="/terms" className="hover:text-zinc-600 dark:hover:text-zinc-400 transition">Terms & Privacy</a>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { Footer } from "@/components/footer";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -213,6 +214,7 @@ export default function SignupPage() {
           </Link>
         </p>
       </div>
+      <Footer />
     </div>
   );
 }
