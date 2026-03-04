@@ -30,6 +30,12 @@ jobs:
         run: |
           npm i -g vercel
           DEPLOY_URL=$(vercel deploy --yes --token=${{ secrets.VERCEL_TOKEN }} \
+            -e NEXT_PUBLIC_SUPABASE_URL="${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" \
+            -e NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+            -e SUPABASE_SERVICE_ROLE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -e NEXT_PUBLIC_VAPID_PUBLIC_KEY="${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}" \
+            -e VAPID_PRIVATE_KEY="${{ secrets.VAPID_PRIVATE_KEY }}" \
+            -e VAPID_MAILTO="${{ secrets.VAPID_MAILTO }}" \
             -e STRIPE_SECRET_KEY="${{ secrets.STRIPE_SECRET_KEY_TEST }}" \
             -e STRIPE_WEBHOOK_SECRET="${{ secrets.STRIPE_WEBHOOK_SECRET_TEST }}" \
             -e STRIPE_PRICE_MONTHLY="${{ secrets.STRIPE_PRICE_MONTHLY_TEST }}" \
