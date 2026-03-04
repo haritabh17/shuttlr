@@ -65,7 +65,7 @@ export function PlanUsageCard({
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clubId, priceType: "monthly" }),
+        body: JSON.stringify({ clubId, billingCycle: "monthly" }),
       });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
