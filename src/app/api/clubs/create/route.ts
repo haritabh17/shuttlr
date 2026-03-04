@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       .from("club_subscriptions")
       .select("club_id, status")
       .in("club_id", clubIds)
-      .in("status", ["active", "trialing"]);
+      .in("status", ["active"]);
 
     hasPro = (subs?.length ?? 0) > 0;
   }

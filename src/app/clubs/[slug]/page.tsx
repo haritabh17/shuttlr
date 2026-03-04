@@ -108,7 +108,7 @@ export default async function ClubPage({
     .eq("month", currentMonth)
     .single();
 
-  const isPro = subscription?.status === "active" || subscription?.status === "trialing";
+  const isPro = subscription?.status === "active";
 
   // Count running sessions for concurrent limit
   const { data: runningSessions } = await supabase

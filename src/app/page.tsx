@@ -61,7 +61,7 @@ export default async function Home() {
       .from("club_subscriptions" as any)
       .select("club_id, status")
       .in("club_id", managedClubIds)
-      .in("status", ["active", "trialing"]);
+      .in("status", ["active"]);
     hasPro = ((subs as any[]) ?? []).length > 0;
   }
   const { LIMITS } = await import("@/lib/limits");

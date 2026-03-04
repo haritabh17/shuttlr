@@ -204,7 +204,7 @@ export default async function GamePage({
     .select("status")
     .eq("club_id", club.id)
     .single();
-  const isClubPro = clubSub?.status === "active" || clubSub?.status === "trialing";
+  const isClubPro = clubSub?.status === "active";
   const concurrentLimit = isClubPro ? LIMITS.pro.concurrentSessions : LIMITS.free.concurrentSessions;
 
   return (

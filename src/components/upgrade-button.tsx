@@ -18,10 +18,8 @@ interface UpgradeButtonProps {
 export function UpgradeButton({ clubId, subscription, sessionCount }: UpgradeButtonProps) {
   const [loading, setLoading] = useState<string | null>(null);
 
-  const isTrialing = subscription?.status === "trialing" &&
-    subscription?.trial_ends_at &&
-    new Date(subscription.trial_ends_at) > new Date();
-  const isPro = subscription?.plan === "pro" && (subscription?.status === "active" || subscription?.status === "trialing");
+  const isTrialing = false;
+  const isPro = subscription?.plan === "pro" && subscription?.status === "active";
 
   const FREE_LIMIT = 4;
   const trialEndsDate = subscription?.trial_ends_at
