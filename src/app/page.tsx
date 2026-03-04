@@ -43,6 +43,7 @@ export default async function Home() {
     `)
     .eq("user_id", user.id)
     .eq("status", "active")
+    .is("clubs.deleted_at", null)
     .order("created_at", { ascending: false });
 
   const clubs = memberships?.map((m) => ({

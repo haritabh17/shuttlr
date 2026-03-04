@@ -10,6 +10,7 @@ import { DeletedSessions } from "@/components/deleted-sessions";
 import { LeaveClubButton } from "@/components/leave-club-button";
 import { PlanUsageCard } from "@/components/plan-usage-card";
 import { LIMITS } from "@/lib/limits";
+import { DeleteClubButton } from "@/components/delete-club-button";
 
 export default async function ClubPage({
   params,
@@ -228,6 +229,13 @@ export default async function ClubPage({
           <div className="border-t border-zinc-200 pt-6 dark:border-zinc-800">
             <LeaveClubButton clubId={club.id} clubName={club.name} membershipId={membership.id} isManager={isManager} />
           </div>
+        )}
+        {isManager && (
+          <DeleteClubButton
+            clubId={club.id}
+            clubName={club.name}
+            memberCount={members?.filter((m: any) => m.status === 'active').length ?? 0}
+          />
         )}
       </main>
     </div>
