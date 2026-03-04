@@ -161,9 +161,14 @@ export function MemberList({
 
   async function removeMember(memberId: string, name: string) {
     if (!clubId || !confirm(`Remove ${name} from the club?`)) return;
-    await fetch(`/api/clubs/${clubId}/members?memberId=${memberId}`, {
+    const res = await fetch(`/api/clubs/${clubId}/members?memberId=${memberId}`, {
       method: "DELETE",
     });
+    if (!res.ok) {
+      const data = await res.json();
+      alert(data.error || "Failed to remove member");
+      return;
+    }
     router.refresh();
   }
 

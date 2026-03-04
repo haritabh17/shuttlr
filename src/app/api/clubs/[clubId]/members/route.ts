@@ -130,6 +130,31 @@ export async function DELETE(
     return NextResponse.json({ error: "memberId required" }, { status: 400 });
   }
 
+  // Check if removing self and is last manager
+  const { data: target } = await supabase
+    .from("club_members")
+    .select("user_id, role")
+    .eq("id", memberId)
+    .eq("club_id", clubId)
+    .single();
+
+  if (target?.user_id === user.id && target?.role === "manager") {
+    const { data: otherManagers } = await supabase
+      .from("club_members")
+      .select("id")
+      .eq("club_id", clubId)
+      .eq("role", "manager")
+      .eq("status", "active")
+      .neq("id", memberId);
+
+    if (!otherManagers || otherManagers.length === 0) {
+      return NextResponse.json(
+        { error: "You're the last manager. Promote someone else or delete the club." },
+        { status: 409 }
+      );
+    }
+  }
+
   // Soft-remove: set status to 'removed'
   await supabase
     .from("club_members")
