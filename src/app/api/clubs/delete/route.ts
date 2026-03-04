@@ -58,7 +58,7 @@ export async function POST(request: Request) {
   // Soft delete the club
   const { error } = await admin
     .from("clubs")
-    .update({ deleted_at: new Date().toISOString() })
+    .update({ deleted_at: new Date().toISOString() } as any)
     .eq("id", clubId);
 
   if (error) {
