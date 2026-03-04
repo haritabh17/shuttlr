@@ -15,7 +15,7 @@ export default function TermsPage() {
 
       <main className="mx-auto max-w-3xl px-4 py-8">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">Terms of Service & Privacy Policy</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Last updated: 28 February 2026</p>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Last updated: 4 March 2026</p>
 
         <div className="mt-8 space-y-8">
           <section>
@@ -169,8 +169,8 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Subscriptions & Payments</h2>
             <ul className="mt-2 space-y-1.5 text-sm text-zinc-700 dark:text-zinc-300 list-disc pl-5">
-              <li>New clubs get a <strong>3-month free trial</strong> with unlimited sessions. After that, clubs are limited to 4 sessions per month on the free plan.</li>
-              <li>The Pro plan removes session limits. It is available as a monthly (€2.99/month) or yearly (€24.99/year) subscription.</li>
+              <li>New clubs get a <strong>3-month free trial</strong> with full access. After the trial, the free plan includes up to <strong>100 total sessions</strong>, <strong>100 members</strong>, <strong>3 managed clubs</strong>, and <strong>1 concurrent running session</strong>.</li>
+              <li>The <strong>Pro plan</strong> (€2.99/month or €24.99/year) raises limits to 500 sessions, 300 members, 10 clubs, and 3 concurrent sessions.</li>
               <li>Subscriptions <strong>auto-renew</strong> at the end of each billing period unless you cancel before the renewal date.</li>
               <li>You can cancel at any time from your club settings. Cancellation takes effect at the end of the current billing period — you keep access until then.</li>
               <li>Payments are processed by <strong>Stripe</strong>. We never see or store your card details.</li>
