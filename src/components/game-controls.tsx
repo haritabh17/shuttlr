@@ -52,13 +52,31 @@ export function GameControls({
       updates.current_phase = "idle"; // worker will pick this up and run first selection
     }
     if (newStatus === "running" && (session.status === "paused" || session.status === "ended")) {
-      // Resume: reset round timer and started_at from now, clear ended_at
-      updates.started_at = new Date().toISOString();
-      updates.current_round_started_at = new Date().toISOString();
+      // Resume: restore timer from where it was paused
+      const pausedElapsed = (session as any).paused_elapsed_ms;
+      if (pausedElapsed && session.status === "paused") {
+        // Set current_round_started_at back in time so timer picks up where it left off
+        const resumedStart = new Date(Date.now() - pausedElapsed).toISOString();
+        updates.current_round_started_at = resumedStart;
+        updates.current_phase = (session as any).paused_phase || "playing";
+        (updates as any).paused_phase = null;
+      } else {
+        updates.started_at = new Date().toISOString();
+        updates.current_round_started_at = new Date().toISOString();
+      }
       updates.ended_at = null;
+      (updates as any).paused_elapsed_ms = null;
     }
     if (newStatus === "paused") {
-      updates.current_phase = "idle"; // pause stops the worker from processing
+      // Save current phase and elapsed time before pausing
+      const currentPhase = (session as any).current_phase || "playing";
+      (updates as any).paused_phase = currentPhase;
+      updates.current_phase = "idle"; // stops the edge function from processing
+      const roundStarted = (session as any).current_round_started_at;
+      if (roundStarted) {
+        const elapsed = Date.now() - new Date(roundStarted).getTime();
+        (updates as any).paused_elapsed_ms = Math.max(0, elapsed);
+      }
     }
     if (newStatus === "ended") {
       updates.ended_at = new Date().toISOString();
