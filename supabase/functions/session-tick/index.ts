@@ -305,21 +305,40 @@ async function runSelection(
       times_paired: r.times_paired,
     }));
 
-    // Build player pool
+    // Fetch club-specific levels from club_members
+    const { data: clubMembers } = await supabase
+      .from("club_members")
+      .select("user_id, invited_level, invited_gender")
+      .eq("club_id", session.club_id)
+      .eq("status", "active");
+
+    const memberLevelMap = new Map<string, number | null>();
+    const memberGenderMap = new Map<string, string | null>();
+    for (const cm of clubMembers ?? []) {
+      memberLevelMap.set(cm.user_id, cm.invited_level);
+      memberGenderMap.set(cm.user_id, cm.invited_gender);
+    }
+
+    // Build player pool (club-specific level takes priority over profile level)
     const pool: Player[] = sessionPlayers
       .filter((sp: any) => sp.user)
-      .map((sp: any) => ({
+      .map((sp: any) => {
+        const clubLevel = memberLevelMap.get(sp.user.id);
+        const clubGender = memberGenderMap.get(sp.user.id);
+        const rawGender = clubGender || sp.user.gender;
+        return {
         id: sp.user.id,
         gender:
-          (sp.user.gender === "male" || sp.user.gender === "M")
+          (rawGender === "male" || rawGender === "M")
             ? "male"
-            : (sp.user.gender === "female" || sp.user.gender === "F")
+            : (rawGender === "female" || rawGender === "F")
               ? "female"
               : null,
-        level: sp.user.level ?? 3,
+        level: clubLevel ?? sp.user.level ?? 3,
         games_played: sp.play_count ?? 0,
         is_on_court: sp.status === "playing",
-      }));
+      };
+      });
 
     // Algorithm config
     const config: AlgorithmConfig = {

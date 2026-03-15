@@ -132,14 +132,26 @@ export async function POST(
     }
   }
 
-  // Map to Player interface
+  // Fetch club-specific levels from club_members
+  const { data: clubMembers } = await admin
+    .from("club_members")
+    .select("user_id, invited_level")
+    .eq("club_id", session.club_id)
+    .eq("status", "active");
+
+  const memberLevelMap: Record<string, number | null> = {};
+  for (const cm of clubMembers ?? []) {
+    memberLevelMap[cm.user_id] = cm.invited_level;
+  }
+
+  // Map to Player interface (club-specific level takes priority)
   const pool: Player[] = sessionPlayers
     .filter((sp) => sp.user)
     .map((sp) => ({
       id: sp.user!.id,
       full_name: sp.user!.full_name,
       gender: (sp.user!.gender || "M") as "M" | "F",
-      level: sp.user!.level ?? 5,
+      level: memberLevelMap[sp.user!.id] ?? sp.user!.level ?? 5,
       play_count: sp.play_count,
       last_played_at: sp.last_played_at,
       teammate_history: teammateHistory[sp.user!.id] || {},
