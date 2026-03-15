@@ -79,13 +79,15 @@ export default async function GamePage({
   // Fetch nickname map from club_members
   const { data: nicknameData } = await (supabase as any)
     .from("club_members")
-    .select("user_id, nickname")
+    .select("user_id, nickname, invited_level")
     .eq("club_id", club.id)
     .eq("status", "active");
 
   const nicknameMap: Record<string, string> = {};
+  const clubLevelMap: Record<string, number | null> = {};
   for (const m of nicknameData ?? []) {
     if (m.user_id && m.nickname) nicknameMap[m.user_id] = m.nickname;
+    if (m.user_id) clubLevelMap[m.user_id] = m.invited_level;
   }
 
   // Enrich session players with nicknames
@@ -94,6 +96,7 @@ export default async function GamePage({
     user: sp.user ? {
       ...sp.user,
       full_name: nicknameMap[sp.user.id] || sp.user.full_name,
+      level: clubLevelMap[sp.user.id] ?? sp.user.level,
     } : sp.user,
   }));
 
