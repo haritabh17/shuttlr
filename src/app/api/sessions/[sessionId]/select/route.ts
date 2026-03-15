@@ -137,7 +137,7 @@ export async function POST(
     .from("club_members")
     .select("user_id, invited_level")
     .eq("club_id", session.club_id)
-    .eq("status", "active");
+    .in("status", ["active", "invited"]);
 
   const memberLevelMap: Record<string, number | null> = {};
   for (const cm of clubMembers ?? []) {

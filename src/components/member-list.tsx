@@ -225,6 +225,11 @@ export function MemberList({
                 >
                   <td className="px-4 py-2.5 text-zinc-900 dark:text-zinc-100">
                     <PlayerName name={name} gender={gender} />
+                    {member.status === "invited" && (
+                      <span className="ml-2 inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                        Invited
+                      </span>
+                    )}
                     {member.user?.email && (
                       <span className="ml-2 text-xs text-zinc-400 dark:text-zinc-500">
                         {member.user.email}

@@ -83,7 +83,7 @@ export default async function ClubPage({
       )
     `)
     .eq("club_id", club.id)
-    .eq("status", "active")
+    .in("status", ["active", "invited"])
     .order("role", { ascending: true });
 
   // Fetch sessions (exclude soft-deleted)

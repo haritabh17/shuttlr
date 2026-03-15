@@ -81,7 +81,7 @@ export default async function GamePage({
     .from("club_members")
     .select("user_id, nickname, invited_level")
     .eq("club_id", club.id)
-    .eq("status", "active");
+    .in("status", ["active", "invited"]);
 
   const nicknameMap: Record<string, string> = {};
   const clubLevelMap: Record<string, number | null> = {};
@@ -114,7 +114,7 @@ export default async function GamePage({
     .from("club_members")
     .select("user_id, user:profiles(id, full_name, gender)")
     .eq("club_id", club.id)
-    .eq("status", "active");
+    .in("status", ["active", "invited"]);
 
   // Fetch current round assignments
   const { data: assignments } = await (supabase as any)

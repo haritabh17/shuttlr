@@ -310,7 +310,7 @@ async function runSelection(
       .from("club_members")
       .select("user_id, invited_level, invited_gender")
       .eq("club_id", session.club_id)
-      .eq("status", "active");
+      .in("status", ["active", "invited"]);
 
     const memberLevelMap = new Map<string, number | null>();
     const memberGenderMap = new Map<string, string | null>();
