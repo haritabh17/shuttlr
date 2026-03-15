@@ -5,6 +5,7 @@ import { MemberList } from "@/components/member-list";
 import { SessionList } from "@/components/session-list";
 import { CreateSessionButton } from "@/components/create-session-button";
 import { AddMemberButton } from "@/components/add-member-button";
+import { ImportExportMembers } from "@/components/import-export-members";
 import { EventLog } from "@/components/event-log";
 import { DeletedSessions } from "@/components/deleted-sessions";
 import { LeaveClubButton } from "@/components/leave-club-button";
@@ -201,11 +202,19 @@ export default async function ClubPage({
               Members ({members?.length ?? 0})
             </h2>
             {isManager && (
-              <AddMemberButton
-                clubId={club.id}
-                memberCount={members?.length ?? 0}
-                memberLimit={isPro ? LIMITS.pro.members : LIMITS.free.members}
-              />
+              <div className="flex items-center gap-2">
+                <AddMemberButton
+                  clubId={club.id}
+                  memberCount={members?.length ?? 0}
+                  memberLimit={isPro ? LIMITS.pro.members : LIMITS.free.members}
+                />
+                <ImportExportMembers
+                  clubId={club.id}
+                  members={members ?? []}
+                  memberCount={members?.length ?? 0}
+                  memberLimit={isPro ? LIMITS.pro.members : LIMITS.free.members}
+                />
+              </div>
             )}
           </div>
           <MemberList members={members ?? []} isManager={isManager} clubId={club.id} />
