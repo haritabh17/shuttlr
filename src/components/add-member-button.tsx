@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 export function AddMemberButton({ clubId, memberCount, memberLimit }: { clubId: string; memberCount: number; memberLimit: number }) {
@@ -13,7 +12,6 @@ export function AddMemberButton({ clubId, memberCount, memberLimit }: { clubId: 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
   const atLimit = memberCount >= memberLimit;
 
   async function handleAdd(e: React.FormEvent) {
@@ -29,83 +27,42 @@ export function AddMemberButton({ clubId, memberCount, memberLimit }: { clubId: 
     }
     setLoading(true);
 
-    // Check if user exists by email (only if email provided)
-    let profile: { id: string } | null = null;
-    if (email.trim()) {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", email.trim())
-        .single();
-      profile = data;
-    }
-
-    // Check if there's an existing (possibly removed) membership
-    let existing: { id: string; status: string; invited_name: string | null } | null = null;
-    if (email.trim()) {
-      const { data } = await supabase
-        .from("club_members")
-        .select("id, status, invited_name")
-        .eq("club_id", clubId)
-        .or(profile ? `user_id.eq.${profile.id},invited_email.eq.${email.trim()}` : `invited_email.eq.${email.trim()}`)
-        .single();
-      existing = data;
-    }
-
-    if (existing) {
-      if (existing.status === "removed") {
-        const memberName = existing.invited_name || name || email;
-        if (!confirm(`${memberName} was previously removed from this club. Re-activate their membership?`)) {
-          setLoading(false);
-          return;
-        }
-        // Re-activate
-        const { error: reactivateErr } = await supabase
-          .from("club_members")
-          .update({
-            status: "active",
-            role: "player",
-            user_id: profile?.id || null,
-            invited_name: name || existing.invited_name,
-            invited_gender: gender,
-            invited_level: level,
-          })
-          .eq("id", existing.id);
-
-        if (reactivateErr) {
-          setError(reactivateErr.message);
-          setLoading(false);
-          return;
-        }
-      } else {
-        setError("This person is already a member of this club.");
-        setLoading(false);
-        return;
-      }
-    } else {
-      const { error: err } = await supabase.from("club_members").insert({
-        club_id: clubId,
-        user_id: profile?.id || null,
-        invited_email: email.trim() || null,
-        invited_name: name,
-        invited_gender: gender,
-        invited_level: level,
-        role: "player",
-        status: profile ? "active" : "invited",
+    try {
+      const res = await fetch(`/api/clubs/${clubId}/members/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim() || null,
+          name: name.trim(),
+          gender,
+          level,
+        }),
       });
 
-      if (err) {
-        setError(err.message);
+      const data = await res.json();
+
+      if (!res.ok) {
+        // Handle re-activation prompt for removed members
+        if (res.status === 409) {
+          setError(data.error);
+        } else {
+          setError(data.error || "Failed to add member");
+        }
         setLoading(false);
         return;
       }
-    }
 
-    setLoading(false);
-    setOpen(false);
-    setEmail("");
-    setName("");
-    router.refresh();
+      setLoading(false);
+      setOpen(false);
+      setEmail("");
+      setName("");
+      setGender("M");
+      setLevel(5);
+      router.refresh();
+    } catch (err) {
+      setError("Network error. Please try again.");
+      setLoading(false);
+    }
   }
 
   if (!open) {
@@ -135,19 +92,6 @@ export function AddMemberButton({ clubId, memberCount, memberLimit }: { clubId: 
         <form onSubmit={handleAdd} className="mt-4 space-y-4">
           <div>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-              placeholder="Optional — for linking accounts"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
               Name
             </label>
             <input
@@ -157,6 +101,19 @@ export function AddMemberButton({ clubId, memberCount, memberLimit }: { clubId: 
               required
               className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               placeholder="Full name"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Email <span className="text-zinc-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              placeholder="For linking to their account"
             />
           </div>
 
