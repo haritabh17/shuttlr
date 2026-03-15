@@ -19,26 +19,38 @@ export function AddMemberButton({ clubId, memberCount, memberLimit }: { clubId: 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (!name.trim()) {
+      setError("Name is required.");
+      return;
+    }
     if (atLimit) {
       setError(`Member limit reached (${memberLimit}). Upgrade to add more.`);
       return;
     }
     setLoading(true);
 
-    // Check if user exists by email
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("email", email)
-      .single();
+    // Check if user exists by email (only if email provided)
+    let profile: { id: string } | null = null;
+    if (email.trim()) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", email.trim())
+        .single();
+      profile = data;
+    }
 
     // Check if there's an existing (possibly removed) membership
-    const { data: existing } = await supabase
-      .from("club_members")
-      .select("id, status, invited_name")
-      .eq("club_id", clubId)
-      .or(profile ? `user_id.eq.${profile.id},invited_email.eq.${email}` : `invited_email.eq.${email}`)
-      .single();
+    let existing: { id: string; status: string; invited_name: string | null } | null = null;
+    if (email.trim()) {
+      const { data } = await supabase
+        .from("club_members")
+        .select("id, status, invited_name")
+        .eq("club_id", clubId)
+        .or(profile ? `user_id.eq.${profile.id},invited_email.eq.${email.trim()}` : `invited_email.eq.${email.trim()}`)
+        .single();
+      existing = data;
+    }
 
     if (existing) {
       if (existing.status === "removed") {
@@ -74,7 +86,7 @@ export function AddMemberButton({ clubId, memberCount, memberLimit }: { clubId: 
       const { error: err } = await supabase.from("club_members").insert({
         club_id: clubId,
         user_id: profile?.id || null,
-        invited_email: email,
+        invited_email: email.trim() || null,
         invited_name: name,
         invited_gender: gender,
         invited_level: level,
@@ -129,9 +141,8 @@ export function AddMemberButton({ clubId, memberCount, memberLimit }: { clubId: 
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
               className="mt-1 block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-              placeholder="player@example.com"
+              placeholder="Optional — for linking accounts"
             />
           </div>
 
