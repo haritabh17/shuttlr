@@ -141,7 +141,7 @@ export async function POST(
 
   const memberLevelMap: Record<string, number | null> = {};
   for (const cm of clubMembers ?? []) {
-    memberLevelMap[cm.user_id] = cm.invited_level;
+    if (cm.user_id) memberLevelMap[cm.user_id] = cm.invited_level;
   }
 
   // Map to Player interface (club-specific level takes priority)
