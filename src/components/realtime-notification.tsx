@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -24,6 +24,15 @@ export function RealtimeNotification({
   const supabase = createClient();
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  // Debounced refresh: wait 300ms for all Realtime events to arrive, then refresh once
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedRefresh = useCallback(() => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => {
+      router.refresh();
+    }, 300);
+  }, [router]);
 
   useEffect(() => {
     const channel = supabase
@@ -68,7 +77,7 @@ export function RealtimeNotification({
           }
 
           // Refresh page data on any new assignment
-          router.refresh();
+          debouncedRefresh();
         }
       )
       .on(
@@ -81,7 +90,7 @@ export function RealtimeNotification({
         },
         () => {
           // Refresh when assignments change (e.g. upcoming → active)
-          router.refresh();
+          debouncedRefresh();
         }
       )
       .on(
@@ -94,7 +103,7 @@ export function RealtimeNotification({
         },
         () => {
           // Refresh when players join/leave/get admitted
-          router.refresh();
+          debouncedRefresh();
         }
       )
       .on(
@@ -107,7 +116,7 @@ export function RealtimeNotification({
         },
         () => {
           // Refresh on session status changes
-          router.refresh();
+          debouncedRefresh();
         }
       )
       .subscribe();
