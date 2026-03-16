@@ -55,7 +55,7 @@ export function PlayerPool({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [sortBy, setSortBy] = useState<"status" | "name" | "games">("status");
+  const [sortBy, setSortBy] = useState<"status" | "name-asc" | "name-desc" | "games-asc" | "games-desc">("status");
   const { selected: swapSelected, select: swapSelect, loading: swapLoading } = useSwap();
 
   const isInSession = players.some(
@@ -143,10 +143,16 @@ export function PlayerPool({
   const activePlayers = players.filter((p) => p.status !== "removed");
   const order = ["pending", "playing", "selected", "available", "resting", "removed"];
   const sorted = [...activePlayers].sort((a, b) => {
-    if (sortBy === "name") {
+    if (sortBy === "name-asc") {
       return (a.user?.full_name || "").localeCompare(b.user?.full_name || "");
     }
-    if (sortBy === "games") {
+    if (sortBy === "name-desc") {
+      return (b.user?.full_name || "").localeCompare(a.user?.full_name || "");
+    }
+    if (sortBy === "games-asc") {
+      return (a.play_count ?? 0) - (b.play_count ?? 0);
+    }
+    if (sortBy === "games-desc") {
       return (b.play_count ?? 0) - (a.play_count ?? 0);
     }
     return order.indexOf(a.status) - order.indexOf(b.status);
@@ -222,16 +228,16 @@ export function PlayerPool({
             <thead>
               <tr className="border-b border-zinc-100 dark:border-zinc-800">
                 <th
-                  onClick={() => setSortBy(sortBy === "name" ? "status" : "name")}
+                  onClick={() => setSortBy(sortBy === "name-asc" ? "name-desc" : sortBy === "name-desc" ? "status" : "name-asc")}
                   className="px-4 py-2.5 text-left font-medium text-zinc-500 dark:text-zinc-400 cursor-pointer select-none hover:text-zinc-700 dark:hover:text-zinc-300"
                 >
-                  Player <span className={sortBy === "name" ? "text-zinc-900 dark:text-zinc-100" : "opacity-30"}>↕</span>
+                  Player <span className={sortBy.startsWith("name") ? "text-zinc-900 dark:text-zinc-100" : "opacity-30"}>{sortBy === "name-asc" ? "↓" : sortBy === "name-desc" ? "↑" : "↓"}</span>
                 </th>
                 <th
-                  onClick={() => setSortBy(sortBy === "games" ? "status" : "games")}
+                  onClick={() => setSortBy(sortBy === "games-desc" ? "games-asc" : sortBy === "games-asc" ? "status" : "games-desc")}
                   className="px-4 py-2.5 text-center font-medium text-zinc-500 dark:text-zinc-400 cursor-pointer select-none hover:text-zinc-700 dark:hover:text-zinc-300"
                 >
-                  Games <span className={sortBy === "games" ? "text-zinc-900 dark:text-zinc-100" : "opacity-30"}>↕</span>
+                  Games <span className={sortBy.startsWith("games") ? "text-zinc-900 dark:text-zinc-100" : "opacity-30"}>{sortBy === "games-desc" ? "↓" : sortBy === "games-asc" ? "↑" : "↓"}</span>
                 </th>
                 <th className="px-4 py-2.5 text-left font-medium text-zinc-500 dark:text-zinc-400">
                   Status
