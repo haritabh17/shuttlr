@@ -67,7 +67,53 @@ export function selectPlayers(
   const actualCourts = Math.min(numCourts, Math.floor(adjusted.length / 4));
   if (actualCourts === 0) return [];
 
-  const selected = adjusted.slice(0, actualCourts * 4);
+  // Gender-aware selection: figure out how many of each gender we need
+  // based on expected game types, to avoid leaving unfillable courts
+  const allMales = adjusted.filter(p => p.gender === "male");
+  const allFemales = adjusted.filter(p => p.gender === "female");
+  const allUnknown = adjusted.filter(p => p.gender === null);
+  const needed = actualCourts * 4;
+
+  // Pre-calculate mixed/doubles split to know gender needs
+  const maxMixed = Math.min(Math.floor(allMales.length / 2), Math.floor(allFemales.length / 2), actualCourts);
+  const targetMixed = Math.round((config.mixed_ratio / 100) * actualCourts);
+  const plannedMixed = Math.min(targetMixed, maxMixed);
+  const plannedDoubles = actualCourts - plannedMixed;
+
+  // Mixed courts need 2M+2F each; doubles need 4 same-gender each
+  let needM = plannedMixed * 2;
+  let needF = plannedMixed * 2;
+
+  // For doubles: prefer the more abundant gender
+  const remainingM = allMales.length - needM;
+  const remainingF = allFemales.length - needF;
+
+  for (let d = 0; d < plannedDoubles; d++) {
+    if (remainingM - (d < plannedDoubles ? 4 : 0) >= 0 && allMales.length >= needM + 4) {
+      needM += 4;
+    } else if (allFemales.length >= needF + 4) {
+      needF += 4;
+    } else if (allMales.length >= needM + 4) {
+      needM += 4;
+    } else {
+      // Can't fill with same gender — will fall back to mixed in assignToCourts
+      needM += 2;
+      needF += 2;
+    }
+  }
+
+  // Select the right number of each gender, sorted by priority
+  const selectedM = allMales.slice(0, Math.min(needM, allMales.length));
+  const selectedF = allFemales.slice(0, Math.min(needF, allFemales.length));
+  const selectedU = allUnknown.slice(0, Math.max(0, needed - selectedM.length - selectedF.length));
+  const selected = [...selectedM, ...selectedF, ...selectedU].slice(0, needed);
+  
+  console.log(`[engine] Gender-aware selection: need ${needM}M + ${needF}F for ${plannedMixed} mixed + ${plannedDoubles} doubles courts`);
+
+  const selMales = selected.filter(p => p.gender === "male").length;
+  const selFemales = selected.filter(p => p.gender === "female").length;
+  const selNull = selected.filter(p => p.gender === null).length;
+  console.log(`[engine] Selected ${selected.length} players: ${selMales}M, ${selFemales}F, ${selNull}null`);
 
   // Decide game types for each court based on mixed_ratio
   const gameTypes = decideGameTypes(actualCourts, config.mixed_ratio, selected);
@@ -97,6 +143,7 @@ function decideGameTypes(
   const targetMixed = Math.round((mixedRatio / 100) * numCourts);
   const actualMixed = Math.min(targetMixed, maxMixed);
 
+  console.log(`[engine] decideGameTypes: ${numCourts} courts, mixedRatio=${mixedRatio}, males=${males}, females=${females}, maxMixed=${maxMixed}, targetMixed=${targetMixed}, actualMixed=${actualMixed}`);
   const types: Array<"mixed" | "doubles"> = [];
   for (let i = 0; i < actualMixed; i++) types.push("mixed");
   for (let i = actualMixed; i < numCourts; i++) types.push("doubles");
@@ -200,6 +247,7 @@ function assignToCourts(
         continue;
       }
     }
+    console.log(`[engine] Court ${i}: could not fill (doublesPool=${doublesPool.length}, M=${doublesPool.filter(p=>p.gender==="male").length}, F=${doublesPool.filter(p=>p.gender==="female").length})`);
     // Truly can't fill this court
   }
 
