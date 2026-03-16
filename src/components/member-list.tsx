@@ -55,15 +55,20 @@ function EditMemberModal({
 
   async function handleShareLink() {
     if (!inviteUrl) return;
-    if (navigator.share) {
-      try {
-        await navigator.share({ url: inviteUrl });
-      } catch {}
-    } else {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Club Invitation", url: inviteUrl });
+        return;
+      }
+    } catch {}
+    try {
       await navigator.clipboard.writeText(inviteUrl);
       setInviteMessage("Link copied! 📋");
-      setTimeout(() => setInviteMessage(null), 2000);
-    }
+      setTimeout(() => setInviteMessage(null), 3000);
+      return;
+    } catch {}
+    // Final fallback: show the URL
+    window.prompt("Copy this invite link:", inviteUrl);
   }
 
   async function handleSendInvite() {
