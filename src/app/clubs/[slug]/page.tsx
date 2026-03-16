@@ -93,20 +93,21 @@ export default async function ClubPage({
   const memberIds = (members ?? []).map((m: any) => m.id);
   const { data: invites } = await (supabase as any)
     .from("club_invites")
-    .select("member_id, email, expires_at, used_at, created_at")
+    .select("member_id, email, token, expires_at, used_at, created_at")
     .eq("club_id", club.id)
     .in("member_id", memberIds.length > 0 ? memberIds : ["none"])
     .is("used_at", null)
     .order("created_at", { ascending: false });
 
   // Build invite status map
-  const inviteMap: Record<string, { status: string; sentAt: string | null }> = {};
+  const inviteMap: Record<string, { status: string; sentAt: string | null; token: string | null }> = {};
   for (const inv of invites ?? []) {
     if (inviteMap[inv.member_id]) continue; // take latest
     const expired = new Date(inv.expires_at) < new Date();
     inviteMap[inv.member_id] = {
       status: expired ? "expired" : "pending",
       sentAt: inv.created_at,
+      token: inv.token,
     };
   }
 
@@ -119,7 +120,7 @@ export default async function ClubPage({
     .not("used_at", "is", null);
 
   for (const inv of usedInvites ?? []) {
-    inviteMap[inv.member_id] = { status: "linked", sentAt: null };
+    inviteMap[inv.member_id] = { status: "linked", sentAt: null, token: null };
   }
 
   // Enrich members with invite status
@@ -128,6 +129,7 @@ export default async function ClubPage({
     invited_email: m.invited_email || null,
     invite_status: inviteMap[m.id]?.status || (m.user?.email && !m.user?.is_placeholder ? "linked" : "none"),
     invite_sent_at: inviteMap[m.id]?.sentAt || null,
+    invite_token: inviteMap[m.id]?.token || null,
   }));
 
   // Fetch sessions (exclude soft-deleted)

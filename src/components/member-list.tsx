@@ -15,6 +15,7 @@ interface Member {
   invited_email: string | null;
   invite_status: "none" | "pending" | "expired" | "linked";
   invite_sent_at: string | null;
+  invite_token: string | null;
   user: {
     id: string;
     full_name: string;
@@ -46,8 +47,24 @@ function EditMemberModal({
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteStatus, setInviteStatus] = useState(member.invite_status);
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(
+    member.invite_token ? `${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${member.invite_token}` : null
+  );
 
   const isLinked = inviteStatus === "linked";
+
+  async function handleShareLink() {
+    if (!inviteUrl) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({ url: inviteUrl });
+      } catch {}
+    } else {
+      await navigator.clipboard.writeText(inviteUrl);
+      setInviteMessage("Link copied! 📋");
+      setTimeout(() => setInviteMessage(null), 2000);
+    }
+  }
 
   async function handleSendInvite() {
     if (!editEmail.trim()) return;
@@ -65,6 +82,7 @@ function EditMemberModal({
       } else {
         setInviteMessage("Invitation sent ✉️");
         setInviteStatus("pending");
+        if (data.inviteUrl) setInviteUrl(data.inviteUrl);
       }
     } catch {
       setInviteMessage("Failed to send invite");

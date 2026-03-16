@@ -153,7 +153,7 @@ export async function POST(
     inviteUrl,
   });
 
-  return NextResponse.json({ ok: true, expiresAt });
+  return NextResponse.json({ ok: true, expiresAt, inviteUrl });
 }
 
 async function sendInviteEmail({
