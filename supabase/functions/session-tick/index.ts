@@ -15,6 +15,7 @@ import {
 const MAX_SESSION_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 Deno.serve(async (req) => {
+  console.log("[tick] Invoked at", new Date().toISOString());
   const authHeader = req.headers.get("Authorization");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const cronSecret = Deno.env.get("CRON_SECRET");
@@ -48,14 +49,16 @@ Deno.serve(async (req) => {
     );
   }
 
+  console.log(`[tick] Found ${sessions.length} running session(s)`);
   const results: string[] = [];
 
   for (const session of sessions) {
     try {
+      console.log(`[tick] Processing session ${session.id}, phase=${session.current_phase}, round_started=${session.current_round_started_at}`);
       const result = await processSession(supabase, session, serviceRoleKey);
-      if (result) results.push(`${session.id}: ${result}`);
+      if (result) { console.log(`[tick] ${session.id}: ${result}`); results.push(`${session.id}: ${result}`); }
     } catch (err) {
-      console.error(`Error processing session ${session.id}:`, err);
+      console.error(`[tick] ERROR processing session ${session.id}:`, (err as Error).message, (err as Error).stack);
       results.push(`${session.id}: error - ${(err as Error).message}`);
     }
   }
@@ -253,7 +256,7 @@ async function runSelection(
     .select("id")
     .single();
 
-  if (!lockRow) return;
+  if (!lockRow) { console.log(`[select] Could not acquire lock for ${session.id}`); return; }
 
   try {
     // Get session players
@@ -266,6 +269,7 @@ async function runSelection(
       .eq("session_id", session.id)
       .in("status", ["available", "playing", "resting"]);
 
+    console.log(`[select] ${session.id}: ${(sessionPlayers ?? []).length} players, assignmentStatus=${assignmentStatus}`);
     if (!sessionPlayers || sessionPlayers.length === 0) {
       await supabase
         .from("sessions")
@@ -285,6 +289,7 @@ async function runSelection(
       .slice(0, session.number_of_courts)
       .filter((c: any) => !c.locked);
 
+    console.log(`[select] ${session.id}: ${courts.length} courts (from ${(allCourts ?? []).length} total)`);
     if (courts.length === 0) {
       await supabase
         .from("sessions")
@@ -348,10 +353,13 @@ async function runSelection(
       strict_gender: session.strict_gender ?? true,
     };
 
-    // Run new selection engine
+    console.log(`[select] ${session.id}: pool=${pool.length} players, ${courts.length} courts, strict_gender=${config.strict_gender}`);
+    console.log(`[select] Gender breakdown:`, pool.reduce((acc, p) => { acc[p.gender || "null"] = (acc[p.gender || "null"] || 0) + 1; return acc; }, {} as Record<string, number>));
     const assignments = selectPlayers(pool, courts.length, config, partnerHistory);
 
+    console.log(`[select] ${session.id}: ${assignments.length} court assignments generated`);
     if (assignments.length === 0) {
+      console.log(`[select] ${session.id}: NO assignments — selection engine returned empty`);
       await supabase
         .from("sessions")
         .update({ selecting: false })
