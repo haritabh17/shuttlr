@@ -34,12 +34,31 @@ export async function POST(
     return NextResponse.json({ error: "Only managers can reshuffle" }, { status: 403 });
   }
 
-  // Delete active AND upcoming assignments
+  // Find the current max round so we only discard the current round, not history
+  const { data: maxRoundRow } = await admin
+    .from("court_assignments")
+    .select("round")
+    .eq("session_id", sessionId)
+    .order("round", { ascending: false })
+    .limit(1);
+
+  const currentRound = maxRoundRow?.[0]?.round ?? 0;
+
+  // Delete only the current round's active assignments + all upcoming
+  if (currentRound > 0) {
+    await admin
+      .from("court_assignments")
+      .delete()
+      .eq("session_id", sessionId)
+      .eq("assignment_status", "active")
+      .eq("round", currentRound);
+  }
+
   await admin
     .from("court_assignments")
     .delete()
     .eq("session_id", sessionId)
-    .in("assignment_status", ["active", "upcoming"]);
+    .eq("assignment_status", "upcoming");
 
   // Decrement play_count for playing players
   const { data: playingPlayers } = await admin
