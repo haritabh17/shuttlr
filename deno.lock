@@ -38,8 +38,8 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
-        "npm:@supabase/ssr@0.8",
-        "npm:@supabase/supabase-js@^2.95.3",
+        "npm:@supabase/ssr@0.9",
+        "npm:@supabase/supabase-js@^2.99.2",
         "npm:@tailwindcss/postcss@4",
         "npm:@types/node@20",
         "npm:@types/react-dom@19",

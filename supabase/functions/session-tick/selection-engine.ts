@@ -74,59 +74,65 @@ export function selectPlayers(
   const allUnknown = adjusted.filter(p => p.gender === null);
   const needed = actualCourts * 4;
 
-  // Compute play-count equity: which gender is behind?
-  const avgPlayM = allMales.length > 0
-    ? allMales.reduce((s, p) => s + p.effective_games, 0) / allMales.length : 0;
-  const avgPlayF = allFemales.length > 0
-    ? allFemales.reduce((s, p) => s + p.effective_games, 0) / allFemales.length : 0;
-  const deficitGender = avgPlayF < avgPlayM ? "female" : avgPlayM < avgPlayF ? "male" : null;
-  const playGap = Math.abs(avgPlayM - avgPlayF);
-
-  // Pre-calculate mixed/doubles split to know gender needs
-  const maxMixed = Math.min(Math.floor(allMales.length / 2), Math.floor(allFemales.length / 2), actualCourts);
+  // Enumerate all feasible (mixed, men's doubles, women's doubles) combinations
+  // and pick the one that minimises the play-count gap between genders.
+  const totalM = allMales.length;
+  const totalF = allFemales.length;
   const targetMixed = Math.round((config.mixed_ratio / 100) * actualCourts);
-  let plannedMixed = Math.min(targetMixed, maxMixed);
-  let plannedDoubles = actualCourts - plannedMixed;
 
-  // Equity adjustment: if a gender is behind and can't fill a doubles court
-  // with the current mixed allocation, reduce mixed by 1 to free up 2 more
-  // of that gender. Only do this when there's a meaningful gap (>= 2 games).
-  if (deficitGender && playGap >= 2 && plannedMixed > 0 && plannedDoubles > 0) {
-    const deficitTotal = deficitGender === "female" ? allFemales.length : allMales.length;
-    const deficitUsedByMixed = plannedMixed * 2;
-    const deficitRemaining = deficitTotal - deficitUsedByMixed;
+  // Sum current effective games for each gender (top players by priority get picked first)
+  const maleGames = allMales.map(p => p.effective_games);
+  const femaleGames = allFemales.map(p => p.effective_games);
 
-    // Can't fill a same-gender doubles with current allocation — reduce mixed
-    if (deficitRemaining < 4 && deficitTotal >= (plannedMixed - 1) * 2 + 4) {
-      plannedMixed -= 1;
-      plannedDoubles += 1;
-      console.log(`[engine] Equity adjustment: reduced mixed to ${plannedMixed} to allow ${deficitGender} doubles (gap=${playGap.toFixed(1)})`);
+  interface CourtCombo { mixed: number; md: number; wd: number; needM: number; needF: number; gap: number; mixedDiff: number; }
+  let bestCombo: CourtCombo | null = null;
+
+  for (let mixed = 0; mixed <= actualCourts; mixed++) {
+    for (let md = 0; md <= actualCourts - mixed; md++) {
+      const wd = actualCourts - mixed - md;
+
+      // Gender requirements for this combo
+      const reqM = mixed * 2 + md * 4;
+      const reqF = mixed * 2 + wd * 4;
+
+      // Feasibility check
+      if (reqM > totalM || reqF > totalF) continue;
+
+      // Simulate: which players would play? (top reqM males, top reqF females by priority)
+      // Calculate post-round average play counts
+      const playingMaleGames = maleGames.slice(0, reqM);
+      const sittingMaleGames = maleGames.slice(reqM);
+      const playingFemaleGames = femaleGames.slice(0, reqF);
+      const sittingFemaleGames = femaleGames.slice(reqF);
+
+      // After this round: playing players get +1
+      const newAvgM = totalM > 0
+        ? (playingMaleGames.reduce((s, g) => s + g + 1, 0) + sittingMaleGames.reduce((s, g) => s + g, 0)) / totalM
+        : 0;
+      const newAvgF = totalF > 0
+        ? (playingFemaleGames.reduce((s, g) => s + g + 1, 0) + sittingFemaleGames.reduce((s, g) => s + g, 0)) / totalF
+        : 0;
+
+      const gap = Math.abs(newAvgM - newAvgF);
+      const mixedDiff = Math.abs(mixed - targetMixed);
+
+      // Pick combo with smallest gap; break ties by closest to target mixed ratio
+      if (!bestCombo || gap < bestCombo.gap - 0.001 || (Math.abs(gap - bestCombo.gap) < 0.001 && mixedDiff < bestCombo.mixedDiff)) {
+        bestCombo = { mixed, md, wd, needM: reqM, needF: reqF, gap, mixedDiff };
+      }
     }
   }
 
-  // Mixed courts need 2M+2F each; doubles need 4 same-gender each
-  let needM = plannedMixed * 2;
-  let needF = plannedMixed * 2;
-
-  // For doubles: prefer the deficit gender so they catch up
-  for (let d = 0; d < plannedDoubles; d++) {
-    const canM = allMales.length >= needM + 4;
-    const canF = allFemales.length >= needF + 4;
-
-    if (deficitGender === "female" && canF) {
-      needF += 4;
-    } else if (deficitGender === "male" && canM) {
-      needM += 4;
-    } else if (canM) {
-      needM += 4;
-    } else if (canF) {
-      needF += 4;
-    } else {
-      // Can't fill with same gender — will fall back to mixed in assignToCourts
-      needM += 2;
-      needF += 2;
-    }
+  // Fallback: all mixed if no combo found
+  if (!bestCombo) {
+    bestCombo = { mixed: actualCourts, md: 0, wd: 0, needM: actualCourts * 2, needF: actualCourts * 2, gap: 0, mixedDiff: 0 };
   }
+
+  const plannedMixed = bestCombo.mixed;
+  let needM = bestCombo.needM;
+  let needF = bestCombo.needF;
+
+  console.log(`[engine] Optimal combo: ${bestCombo.mixed}mixed + ${bestCombo.md}MD + ${bestCombo.wd}WD (projected gap=${bestCombo.gap.toFixed(2)})`);
 
   // Select the right number of each gender, sorted by priority
   const selectedM = allMales.slice(0, Math.min(needM, allMales.length));
@@ -134,17 +140,10 @@ export function selectPlayers(
   const selectedU = allUnknown.slice(0, Math.max(0, needed - selectedM.length - selectedF.length));
   const selected = [...selectedM, ...selectedF, ...selectedU].slice(0, needed);
   
-  console.log(`[engine] Gender-aware selection: need ${needM}M + ${needF}F for ${plannedMixed} mixed + ${plannedDoubles} doubles courts`);
-
-  const selMales = selected.filter(p => p.gender === "male").length;
-  const selFemales = selected.filter(p => p.gender === "female").length;
-  const selNull = selected.filter(p => p.gender === null).length;
-  console.log(`[engine] Selected ${selected.length} players: ${selMales}M, ${selFemales}F, ${selNull}null`);
-
-  // Build game types from our planned split (respects equity adjustment)
+  // Build game types from optimal combo
   const gameTypes: Array<"mixed" | "doubles"> = [];
-  for (let i = 0; i < plannedMixed; i++) gameTypes.push("mixed");
-  for (let i = plannedMixed; i < actualCourts; i++) gameTypes.push("doubles");
+  for (let i = 0; i < bestCombo.mixed; i++) gameTypes.push("mixed");
+  for (let i = 0; i < bestCombo.md + bestCombo.wd; i++) gameTypes.push("doubles");
   console.log(`[engine] Game types: ${gameTypes.join(", ")}`);
 
   // Build partner lookup for variety scoring
