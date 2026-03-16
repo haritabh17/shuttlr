@@ -120,8 +120,7 @@ export function RealtimeNotification({
           debouncedRefresh();
         }
       )
-      .subscribe((status, err) => {
-        console.log("[realtime] subscription status:", status, err || "");
+      .subscribe((status) => {
         if (status === "TIMED_OUT" || status === "CLOSED") {
           // Don't remove channel — supabase-js auto-reconnects.
           // Just refresh to catch any events missed during disconnect.

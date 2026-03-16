@@ -24,14 +24,8 @@ export function SelectionTimer({
   const router = useRouter();
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
-  // Debug: log prop changes
-  useEffect(() => {
-    console.log("[timer] props changed:", { currentPhase, currentRoundStartedAt, sessionStatus });
-  }, [currentPhase, currentRoundStartedAt, sessionStatus]);
-
   useEffect(() => {
     if (sessionStatus !== "running" || !currentRoundStartedAt || currentPhase === "idle") {
-      console.log("[timer] hiding — phase:", currentPhase, "roundStarted:", currentRoundStartedAt);
       setTimeLeft(null);
       return;
     }
