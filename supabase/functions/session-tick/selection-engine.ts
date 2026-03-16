@@ -74,27 +74,53 @@ export function selectPlayers(
   const allUnknown = adjusted.filter(p => p.gender === null);
   const needed = actualCourts * 4;
 
+  // Compute play-count equity: which gender is behind?
+  const avgPlayM = allMales.length > 0
+    ? allMales.reduce((s, p) => s + p.effective_games, 0) / allMales.length : 0;
+  const avgPlayF = allFemales.length > 0
+    ? allFemales.reduce((s, p) => s + p.effective_games, 0) / allFemales.length : 0;
+  const deficitGender = avgPlayF < avgPlayM ? "female" : avgPlayM < avgPlayF ? "male" : null;
+  const playGap = Math.abs(avgPlayM - avgPlayF);
+
   // Pre-calculate mixed/doubles split to know gender needs
   const maxMixed = Math.min(Math.floor(allMales.length / 2), Math.floor(allFemales.length / 2), actualCourts);
   const targetMixed = Math.round((config.mixed_ratio / 100) * actualCourts);
-  const plannedMixed = Math.min(targetMixed, maxMixed);
-  const plannedDoubles = actualCourts - plannedMixed;
+  let plannedMixed = Math.min(targetMixed, maxMixed);
+  let plannedDoubles = actualCourts - plannedMixed;
+
+  // Equity adjustment: if a gender is behind and can't fill a doubles court
+  // with the current mixed allocation, reduce mixed by 1 to free up 2 more
+  // of that gender. Only do this when there's a meaningful gap (>= 2 games).
+  if (deficitGender && playGap >= 2 && plannedMixed > 0 && plannedDoubles > 0) {
+    const deficitTotal = deficitGender === "female" ? allFemales.length : allMales.length;
+    const deficitUsedByMixed = plannedMixed * 2;
+    const deficitRemaining = deficitTotal - deficitUsedByMixed;
+
+    // Can't fill a same-gender doubles with current allocation — reduce mixed
+    if (deficitRemaining < 4 && deficitTotal >= (plannedMixed - 1) * 2 + 4) {
+      plannedMixed -= 1;
+      plannedDoubles += 1;
+      console.log(`[engine] Equity adjustment: reduced mixed to ${plannedMixed} to allow ${deficitGender} doubles (gap=${playGap.toFixed(1)})`);
+    }
+  }
 
   // Mixed courts need 2M+2F each; doubles need 4 same-gender each
   let needM = plannedMixed * 2;
   let needF = plannedMixed * 2;
 
-  // For doubles: prefer the more abundant gender
-  const remainingM = allMales.length - needM;
-  const remainingF = allFemales.length - needF;
-
+  // For doubles: prefer the deficit gender so they catch up
   for (let d = 0; d < plannedDoubles; d++) {
-    if (remainingM - (d < plannedDoubles ? 4 : 0) >= 0 && allMales.length >= needM + 4) {
-      needM += 4;
-    } else if (allFemales.length >= needF + 4) {
+    const canM = allMales.length >= needM + 4;
+    const canF = allFemales.length >= needF + 4;
+
+    if (deficitGender === "female" && canF) {
       needF += 4;
-    } else if (allMales.length >= needM + 4) {
+    } else if (deficitGender === "male" && canM) {
       needM += 4;
+    } else if (canM) {
+      needM += 4;
+    } else if (canF) {
+      needF += 4;
     } else {
       // Can't fill with same gender — will fall back to mixed in assignToCourts
       needM += 2;
@@ -115,8 +141,11 @@ export function selectPlayers(
   const selNull = selected.filter(p => p.gender === null).length;
   console.log(`[engine] Selected ${selected.length} players: ${selMales}M, ${selFemales}F, ${selNull}null`);
 
-  // Decide game types for each court based on mixed_ratio
-  const gameTypes = decideGameTypes(actualCourts, config.mixed_ratio, selected, gameTypeHistory);
+  // Build game types from our planned split (respects equity adjustment)
+  const gameTypes: Array<"mixed" | "doubles"> = [];
+  for (let i = 0; i < plannedMixed; i++) gameTypes.push("mixed");
+  for (let i = plannedMixed; i < actualCourts; i++) gameTypes.push("doubles");
+  console.log(`[engine] Game types: ${gameTypes.join(", ")}`);
 
   // Build partner lookup for variety scoring
   const pairLookup = buildPairLookup(partnerHistory);
@@ -323,10 +352,17 @@ function pickBestDoublesCombo(
   const males = pool.filter((p) => p.gender === "male");
   const females = pool.filter((p) => p.gender === "female");
 
-  // Prefer whichever gender has more players available
-  const genderPools = males.length >= females.length
-    ? [males, females]
-    : [females, males];
+  // Prefer the gender with lower average play count (equity-first).
+  // Fall back to majority gender if play counts are equal.
+  const avgM = males.length > 0 ? males.reduce((s, p) => s + p.games_played, 0) / males.length : Infinity;
+  const avgF = females.length > 0 ? females.reduce((s, p) => s + p.games_played, 0) / females.length : Infinity;
+  const genderPools = avgF < avgM
+    ? [females, males]
+    : avgM < avgF
+      ? [males, females]
+      : males.length >= females.length
+        ? [males, females]
+        : [females, males];
 
   for (const gPool of genderPools) {
     if (gPool.length < 4) continue;
