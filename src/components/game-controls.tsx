@@ -206,7 +206,11 @@ export function GameControls({
           onClick={async () => {
             if (!confirm("Discard current selection and pick new players?")) return;
             setLoading("discard");
-            await fetch(`/api/sessions/${session.id}/reshuffle`, { method: "POST" });
+            try {
+              await fetch(`/api/sessions/${session.id}/reshuffle`, { method: "POST" });
+            } catch (e) {
+              console.warn("[reshuffle] network error, retrying refresh...", e);
+            }
             setLoading(null);
             router.refresh();
           }}

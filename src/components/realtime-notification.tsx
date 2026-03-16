@@ -120,14 +120,22 @@ export function RealtimeNotification({
           debouncedRefresh();
         }
       )
-      .subscribe((status) => {
-        console.log("[realtime] subscription status:", status);
+      .subscribe((status, err) => {
+        console.log("[realtime] subscription status:", status, err || "");
+        if (status === "TIMED_OUT" || status === "CHANNEL_ERROR" || status === "CLOSED") {
+          // Reconnect after a short delay
+          setTimeout(() => {
+            console.log("[realtime] attempting reconnect...");
+            supabase.removeChannel(channel);
+            router.refresh(); // Refresh to pick up any missed updates
+          }, 2000);
+        }
       });
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [sessionId, userId, courts, supabase, router]);
+  }, [sessionId, userId, courts, supabase, router, debouncedRefresh]);
 
   if (notifications.length === 0) return null;
 
