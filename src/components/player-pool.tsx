@@ -55,6 +55,7 @@ export function PlayerPool({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [sortBy, setSortBy] = useState<"status" | "name" | "games">("status");
   const { selected: swapSelected, select: swapSelect, loading: swapLoading } = useSwap();
 
   const isInSession = players.some(
@@ -141,9 +142,15 @@ export function PlayerPool({
 
   const activePlayers = players.filter((p) => p.status !== "removed");
   const order = ["pending", "playing", "selected", "available", "resting", "removed"];
-  const sorted = [...activePlayers].sort(
-    (a, b) => order.indexOf(a.status) - order.indexOf(b.status)
-  );
+  const sorted = [...activePlayers].sort((a, b) => {
+    if (sortBy === "name") {
+      return (a.user?.full_name || "").localeCompare(b.user?.full_name || "");
+    }
+    if (sortBy === "games") {
+      return (b.play_count ?? 0) - (a.play_count ?? 0);
+    }
+    return order.indexOf(a.status) - order.indexOf(b.status);
+  });
 
   return (
     <div>
@@ -214,11 +221,17 @@ export function PlayerPool({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100 dark:border-zinc-800">
-                <th className="px-4 py-2.5 text-left font-medium text-zinc-500 dark:text-zinc-400">
-                  Player
+                <th
+                  onClick={() => setSortBy(sortBy === "name" ? "status" : "name")}
+                  className="px-4 py-2.5 text-left font-medium text-zinc-500 dark:text-zinc-400 cursor-pointer select-none hover:text-zinc-700 dark:hover:text-zinc-300"
+                >
+                  Player {sortBy === "name" && "↑"}
                 </th>
-                <th className="px-4 py-2.5 text-center font-medium text-zinc-500 dark:text-zinc-400">
-                  Games
+                <th
+                  onClick={() => setSortBy(sortBy === "games" ? "status" : "games")}
+                  className="px-4 py-2.5 text-center font-medium text-zinc-500 dark:text-zinc-400 cursor-pointer select-none hover:text-zinc-700 dark:hover:text-zinc-300"
+                >
+                  Games {sortBy === "games" && "↓"}
                 </th>
                 <th className="px-4 py-2.5 text-left font-medium text-zinc-500 dark:text-zinc-400">
                   Status
