@@ -353,9 +353,23 @@ async function runSelection(
       strict_gender: session.strict_gender ?? true,
     };
 
+
+    // Get cumulative game type history for this session
+    const { data: pastAssignments } = await supabase
+      .from("court_assignments")
+      .select("game_type")
+      .eq("session_id", session.id)
+      .neq("assignment_status", "upcoming");
+
+    const gameTypeHistory = {
+      mixed: (pastAssignments ?? []).filter((a: any) => a.game_type === "mixed").length,
+      doubles: (pastAssignments ?? []).filter((a: any) => a.game_type === "doubles").length,
+    };
+    console.log(`[select] Game type history: ${gameTypeHistory.mixed} mixed, ${gameTypeHistory.doubles} doubles`);
+
     console.log(`[select] ${session.id}: pool=${pool.length} players, ${courts.length} courts, strict_gender=${config.strict_gender}`);
     console.log(`[select] Gender breakdown:`, pool.reduce((acc, p) => { acc[p.gender || "null"] = (acc[p.gender || "null"] || 0) + 1; return acc; }, {} as Record<string, number>));
-    const assignments = selectPlayers(pool, courts.length, config, partnerHistory);
+    const assignments = selectPlayers(pool, courts.length, config, partnerHistory, gameTypeHistory);
 
     console.log(`[select] ${session.id}: ${assignments.length} court assignments generated`);
     if (assignments.length === 0) {

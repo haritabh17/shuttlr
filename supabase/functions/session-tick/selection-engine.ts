@@ -44,6 +44,7 @@ export function selectPlayers(
   numCourts: number,
   config: AlgorithmConfig,
   partnerHistory: PartnerPair[],
+  gameTypeHistory?: { mixed: number; doubles: number },
 ): CourtAssignment[] {
   const available = players.filter((p) => true); // all players are candidates
 
@@ -115,7 +116,7 @@ export function selectPlayers(
   console.log(`[engine] Selected ${selected.length} players: ${selMales}M, ${selFemales}F, ${selNull}null`);
 
   // Decide game types for each court based on mixed_ratio
-  const gameTypes = decideGameTypes(actualCourts, config.mixed_ratio, selected);
+  const gameTypes = decideGameTypes(actualCourts, config.mixed_ratio, selected, gameTypeHistory);
 
   // Build partner lookup for variety scoring
   const pairLookup = buildPairLookup(partnerHistory);
@@ -131,6 +132,7 @@ function decideGameTypes(
   numCourts: number,
   mixedRatio: number,
   players: Array<Player & { effective_games: number }>,
+  gameTypeHistory?: { mixed: number; doubles: number },
 ): Array<"mixed" | "doubles"> {
   const males = players.filter((p) => p.gender === "male").length;
   const females = players.filter((p) => p.gender === "female").length;
@@ -138,11 +140,18 @@ function decideGameTypes(
   // Max possible mixed courts (each needs at least 1M + 1F per team = 2M + 2F)
   const maxMixed = Math.min(Math.floor(males / 2), Math.floor(females / 2), numCourts);
 
-  // Target mixed courts based on ratio
-  const targetMixed = Math.round((mixedRatio / 100) * numCourts);
-  const actualMixed = Math.min(targetMixed, maxMixed);
+  // Calculate target based on CUMULATIVE ratio across the session
+  const pastMixed = gameTypeHistory?.mixed ?? 0;
+  const pastDoubles = gameTypeHistory?.doubles ?? 0;
+  const pastTotal = pastMixed + pastDoubles;
 
-  console.log(`[engine] decideGameTypes: ${numCourts} courts, mixedRatio=${mixedRatio}, males=${males}, females=${females}, maxMixed=${maxMixed}, targetMixed=${targetMixed}, actualMixed=${actualMixed}`);
+  // How many mixed games should there be after this round?
+  const futureTotal = pastTotal + numCourts;
+  const targetTotalMixed = Math.round((mixedRatio / 100) * futureTotal);
+  const targetThisRound = Math.max(0, Math.min(numCourts, targetTotalMixed - pastMixed));
+  const actualMixed = Math.min(targetThisRound, maxMixed);
+
+  console.log(`[engine] decideGameTypes: ${numCourts} courts, mixedRatio=${mixedRatio}, past=${pastMixed}mixed/${pastDoubles}doubles, targetThisRound=${targetThisRound}, actualMixed=${actualMixed}`);
   const types: Array<"mixed" | "doubles"> = [];
   for (let i = 0; i < actualMixed; i++) types.push("mixed");
   for (let i = actualMixed; i < numCourts; i++) types.push("doubles");
