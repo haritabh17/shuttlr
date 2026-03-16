@@ -60,6 +60,13 @@ export function CreateSessionButton({ clubId, clubName, sessionCount, sessionLim
       return;
     }
 
+    // Ensure club has enough court rows
+    await fetch(`/api/clubs/${clubId}/courts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ count: numberOfCourts }),
+    });
+
     setLoading(false);
     setOpen(false);
     setName("");

@@ -68,6 +68,16 @@ export function EditSessionSettings({ session }: { session: Session }) {
       return;
     }
 
+    // Ensure club has enough court rows for new count
+    const clubId = (session as any).club_id;
+    if (clubId) {
+      await fetch(`/api/clubs/${clubId}/courts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ count: courts }),
+      });
+    }
+
     setLoading(false);
     setOpen(false);
     router.refresh();
