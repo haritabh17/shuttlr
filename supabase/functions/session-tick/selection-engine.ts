@@ -46,7 +46,6 @@ export function selectPlayers(
   partnerHistory: PartnerPair[],
 ): CourtAssignment[] {
   const available = players.filter((p) => true); // all players are candidates
-  const needed = numCourts * 4;
 
   if (available.length < 4) return []; // need at least 4 for one court
 
