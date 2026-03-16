@@ -123,6 +123,64 @@ function EditMemberModal({
               {globalName} <span className="text-xs">(global profile)</span>
             </p>
           </div>
+
+          {/* Email / Invite Section */}
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Email
+            </label>
+            {isLinked ? (
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-sm text-zinc-600 dark:text-zinc-400">{editEmail}</span>
+                <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                  Linked ✓
+                </span>
+              </div>
+            ) : (
+              <div className="mt-1 space-y-2">
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  placeholder="Enter email to invite"
+                />
+                {inviteStatus === "pending" && !inviteMessage && (
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                    Invitation sent · {member.invite_sent_at ? timeAgo(member.invite_sent_at) : "recently"}
+                  </p>
+                )}
+                {inviteStatus === "expired" && !inviteMessage && (
+                  <p className="text-xs text-red-500">Invitation expired</p>
+                )}
+                {inviteMessage && (
+                  <p className={`text-xs ${inviteMessage.includes("✉️") || inviteMessage.includes("📋") ? "text-green-600 dark:text-green-400" : "text-red-500"}`}>
+                    {inviteMessage}
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSendInvite}
+                    disabled={inviteLoading || !editEmail.trim()}
+                    className="rounded-lg border border-teal-300 px-3 py-1.5 text-xs font-medium text-teal-700 hover:bg-teal-50 disabled:opacity-40 dark:border-teal-800 dark:text-teal-400 dark:hover:bg-teal-950"
+                  >
+                    {inviteLoading ? "Sending..." : inviteStatus === "pending" || inviteStatus === "expired" ? "Resend Invite" : "Send Invite"}
+                  </button>
+                  {inviteUrl && (
+                    <button
+                      type="button"
+                      onClick={handleShareLink}
+                      className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                    >
+                      Share Link 🔗
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
               Club nickname <span className="text-xs font-normal text-zinc-400">(optional)</span>
