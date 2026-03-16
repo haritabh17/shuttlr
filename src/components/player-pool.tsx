@@ -225,13 +225,13 @@ export function PlayerPool({
                   onClick={() => setSortBy(sortBy === "name" ? "status" : "name")}
                   className="px-4 py-2.5 text-left font-medium text-zinc-500 dark:text-zinc-400 cursor-pointer select-none hover:text-zinc-700 dark:hover:text-zinc-300"
                 >
-                  Player {sortBy === "name" && "↑"}
+                  Player <span className={sortBy === "name" ? "text-zinc-900 dark:text-zinc-100" : "opacity-30"}>↕</span>
                 </th>
                 <th
                   onClick={() => setSortBy(sortBy === "games" ? "status" : "games")}
                   className="px-4 py-2.5 text-center font-medium text-zinc-500 dark:text-zinc-400 cursor-pointer select-none hover:text-zinc-700 dark:hover:text-zinc-300"
                 >
-                  Games {sortBy === "games" && "↓"}
+                  Games <span className={sortBy === "games" ? "text-zinc-900 dark:text-zinc-100" : "opacity-30"}>↕</span>
                 </th>
                 <th className="px-4 py-2.5 text-left font-medium text-zinc-500 dark:text-zinc-400">
                   Status
