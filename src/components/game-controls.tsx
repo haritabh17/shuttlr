@@ -206,35 +206,7 @@ export function GameControls({
           onClick={async () => {
             if (!confirm("Discard current selection and pick new players?")) return;
             setLoading("discard");
-            // Delete current active AND upcoming assignments
-            await supabase
-              .from("court_assignments")
-              .delete()
-              .eq("session_id", session.id)
-              .in("assignment_status", ["active", "upcoming"]);
-            // Reset playing/selected players to available AND decrement play_count for playing players
-            const { data: playingPlayers } = await supabase
-              .from("session_players")
-              .select("id, play_count")
-              .eq("session_id", session.id)
-              .eq("status", "playing");
-            for (const p of playingPlayers ?? []) {
-              await supabase
-                .from("session_players")
-                .update({ status: "available", play_count: Math.max(0, (p.play_count ?? 1) - 1) })
-                .eq("id", p.id);
-            }
-            // Also reset any "selected" players
-            await supabase
-              .from("session_players")
-              .update({ status: "available" })
-              .eq("session_id", session.id)
-              .eq("status", "selected");
-            // Reset phase to idle, clear next_round_selected — Edge Function will run fresh selection
-            await supabase
-              .from("sessions")
-              .update({ current_phase: "idle", current_round_started_at: null, selecting: false, next_round_selected: false } as any)
-              .eq("id", session.id);
+            await fetch(`/api/sessions/${session.id}/reshuffle`, { method: "POST" });
             setLoading(null);
             router.refresh();
           }}
