@@ -201,6 +201,38 @@ export function GameControls({
         </button>
       )}
 
+      {session.status === "running" && (
+        <button
+          onClick={async () => {
+            if (!confirm("Discard current selection and pick new players?")) return;
+            setLoading("discard");
+            // Delete current active assignments
+            await supabase
+              .from("court_assignments")
+              .delete()
+              .eq("session_id", session.id)
+              .eq("assignment_status", "active");
+            // Reset all playing players to available
+            await supabase
+              .from("session_players")
+              .update({ status: "available" })
+              .eq("session_id", session.id)
+              .eq("status", "playing");
+            // Reset phase to idle — Edge Function will run fresh selection
+            await supabase
+              .from("sessions")
+              .update({ current_phase: "idle", current_round_started_at: null, selecting: false } as any)
+              .eq("id", session.id);
+            setLoading(null);
+            router.refresh();
+          }}
+          disabled={disabled || loading !== null}
+          className={`${btnBase} border border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950`}
+        >
+          {loading === "discard" ? "..." : "Reshuffle"}
+        </button>
+      )}
+
       {["initiated", "running", "paused"].includes(session.status) && (
         <button
           onClick={() => { if (confirm("End this session?")) updateStatus("ended"); }}
