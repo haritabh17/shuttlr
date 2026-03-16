@@ -325,7 +325,11 @@ export function MemberList({
             </tr>
           </thead>
           <tbody>
-            {members.map((member) => {
+            {[...members].sort((a, b) => {
+              const nameA = (a.nickname || a.user?.full_name || a.invited_name || "").toLowerCase();
+              const nameB = (b.nickname || b.user?.full_name || b.invited_name || "").toLowerCase();
+              return nameA.localeCompare(nameB);
+            }).map((member) => {
               const displayName = member.nickname || member.user?.full_name || member.invited_name || "Unknown";
               const name = displayName;
               const gender = member.user?.gender || member.invited_gender;
