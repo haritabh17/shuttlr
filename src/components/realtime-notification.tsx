@@ -114,12 +114,15 @@ export function RealtimeNotification({
           table: "sessions",
           filter: `id=eq.${sessionId}`,
         },
-        () => {
+        (payload) => {
           // Refresh on session status changes
+          console.log("[realtime] sessions UPDATE:", payload.new ? { phase: (payload.new as any).current_phase, round_started: (payload.new as any).current_round_started_at } : "no new");
           debouncedRefresh();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[realtime] subscription status:", status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
