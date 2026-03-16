@@ -11,6 +11,8 @@ import { NextUpPanel } from "@/components/next-up-panel";
 import { SwapProvider } from "@/components/swap-context";
 import { LIMITS } from "@/lib/limits";
 
+export const dynamic = "force-dynamic";
+
 export default async function GamePage({
   params,
 }: {
