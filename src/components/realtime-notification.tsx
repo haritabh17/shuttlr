@@ -122,13 +122,10 @@ export function RealtimeNotification({
       )
       .subscribe((status, err) => {
         console.log("[realtime] subscription status:", status, err || "");
-        if (status === "TIMED_OUT" || status === "CHANNEL_ERROR" || status === "CLOSED") {
-          // Reconnect after a short delay
-          setTimeout(() => {
-            console.log("[realtime] attempting reconnect...");
-            supabase.removeChannel(channel);
-            router.refresh(); // Refresh to pick up any missed updates
-          }, 2000);
+        if (status === "TIMED_OUT" || status === "CLOSED") {
+          // Don't remove channel — supabase-js auto-reconnects.
+          // Just refresh to catch any events missed during disconnect.
+          debouncedRefresh();
         }
       });
 
