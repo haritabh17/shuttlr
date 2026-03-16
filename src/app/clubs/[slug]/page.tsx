@@ -75,17 +75,60 @@ export default async function ClubPage({
       invited_name,
       invited_gender,
       invited_level,
+      invited_email,
       user:profiles (
         id,
         full_name,
         email,
         gender,
-        level
+        level,
+        is_placeholder
       )
     `)
     .eq("club_id", club.id)
     .in("status", ["active", "invited"])
     .order("role", { ascending: true });
+
+  // Fetch invite status for members
+  const memberIds = (members ?? []).map((m: any) => m.id);
+  const { data: invites } = await (supabase as any)
+    .from("club_invites")
+    .select("member_id, email, expires_at, used_at, created_at")
+    .eq("club_id", club.id)
+    .in("member_id", memberIds.length > 0 ? memberIds : ["none"])
+    .is("used_at", null)
+    .order("created_at", { ascending: false });
+
+  // Build invite status map
+  const inviteMap: Record<string, { status: string; sentAt: string | null }> = {};
+  for (const inv of invites ?? []) {
+    if (inviteMap[inv.member_id]) continue; // take latest
+    const expired = new Date(inv.expires_at) < new Date();
+    inviteMap[inv.member_id] = {
+      status: expired ? "expired" : "pending",
+      sentAt: inv.created_at,
+    };
+  }
+
+  // Check for accepted invites (used_at not null) to mark as linked
+  const { data: usedInvites } = await (supabase as any)
+    .from("club_invites")
+    .select("member_id")
+    .eq("club_id", club.id)
+    .in("member_id", memberIds.length > 0 ? memberIds : ["none"])
+    .not("used_at", "is", null);
+
+  for (const inv of usedInvites ?? []) {
+    inviteMap[inv.member_id] = { status: "linked", sentAt: null };
+  }
+
+  // Enrich members with invite status
+  const enrichedMembers = (members ?? []).map((m: any) => ({
+    ...m,
+    invited_email: m.invited_email || null,
+    invite_status: inviteMap[m.id]?.status || (m.user?.email && !m.user?.is_placeholder ? "linked" : "none"),
+    invite_sent_at: inviteMap[m.id]?.sentAt || null,
+  }));
 
   // Fetch sessions (exclude soft-deleted)
   const { data: sessions } = await supabase
@@ -217,7 +260,7 @@ export default async function ClubPage({
               </div>
             )}
           </div>
-          <MemberList members={members ?? []} isManager={isManager} clubId={club.id} />
+          <MemberList members={enrichedMembers} isManager={isManager} clubId={club.id} />
         </section>
         {/* Deleted Sessions (managers only) */}
         {isManager && deletedSessions && deletedSessions.length > 0 && (

@@ -12,6 +12,9 @@ interface Member {
   invited_name: string | null;
   invited_gender: string | null;
   invited_level: number | null;
+  invited_email: string | null;
+  invite_status: "none" | "pending" | "expired" | "linked";
+  invite_sent_at: string | null;
   user: {
     id: string;
     full_name: string;
@@ -38,7 +41,36 @@ function EditMemberModal({
   const [editNickname, setEditNickname] = useState(member.nickname || "");
   const [editGender, setEditGender] = useState(gender);
   const [editLevel, setEditLevel] = useState(level);
+  const [editEmail, setEditEmail] = useState(member.invited_email || "");
   const [loading, setLoading] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteStatus, setInviteStatus] = useState(member.invite_status);
+  const [inviteMessage, setInviteMessage] = useState<string | null>(null);
+
+  const isLinked = inviteStatus === "linked";
+
+  async function handleSendInvite() {
+    if (!editEmail.trim()) return;
+    setInviteLoading(true);
+    setInviteMessage(null);
+    try {
+      const res = await fetch(`/api/clubs/${clubId}/members/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId: member.id, email: editEmail.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setInviteMessage(data.error || "Failed to send invite");
+      } else {
+        setInviteMessage("Invitation sent ✉️");
+        setInviteStatus("pending");
+      }
+    } catch {
+      setInviteMessage("Failed to send invite");
+    }
+    setInviteLoading(false);
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -292,4 +324,15 @@ export function MemberList({
       </div>
     </>
   );
+}
+
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
