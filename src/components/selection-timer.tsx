@@ -57,10 +57,10 @@ export function SelectionTimer({
     };
   }, [sessionStatus, playTimeMinutes, restTimeMinutes, currentPhase, currentRoundStartedAt, router]);
 
-  // Periodically refresh to stay in sync with backend
+  // Safety-net poll: catches Realtime disconnects (e.g. phone sleep, network blip)
   useEffect(() => {
     if (sessionStatus !== "running") return;
-    const interval = setInterval(() => router.refresh(), 10000);
+    const interval = setInterval(() => router.refresh(), 30000);
     return () => clearInterval(interval);
   }, [sessionStatus, router]);
 
