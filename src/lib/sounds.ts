@@ -68,20 +68,28 @@ function playTone(
 }
 
 /**
- * Double-beep: two short 800 Hz beeps with a gap.
+ * Selection beep: repeating double-beeps for 3 seconds.
  * "New round selected — check who's playing!"
  */
 export function selectionBeep(): void {
   if (muted) return;
-  playTone(800, 0.15, "square", 0.25);
-  setTimeout(() => playTone(800, 0.15, "square", 0.25), 250);
+  // Double-beep pattern every 600ms for 3 seconds (5 pairs)
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => {
+      playTone(800, 0.15, "square", 0.25);
+      setTimeout(() => playTone(800, 0.15, "square", 0.25), 200);
+    }, i * 600);
+  }
 }
 
 /**
- * Game-over buzzer: sustained 400 Hz tone for 0.8s.
+ * Game-over buzzer: repeating buzz pulses for 6 seconds.
  * "Time's up — get off the court!"
  */
 export function gameOverBuzzer(): void {
   if (muted) return;
-  playTone(400, 0.8, "sawtooth", 0.3);
+  // 0.8s buzz with 0.4s gap, repeated for 6 seconds (5 pulses)
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => playTone(400, 0.8, "sawtooth", 0.3), i * 1200);
+  }
 }
