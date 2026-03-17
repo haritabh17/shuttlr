@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { selectionBeep } from "@/lib/sounds";
 
 interface RealtimeNotificationProps {
   sessionId: string;
@@ -27,12 +28,21 @@ export function RealtimeNotification({
 
   // Debounced refresh: wait 300ms for all Realtime events to arrive, then refresh once
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const beepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debouncedRefresh = useCallback(() => {
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     refreshTimerRef.current = setTimeout(() => {
       router.refresh();
     }, 300);
   }, [router]);
+
+  // Debounced beep: fire once per batch of new assignments
+  const debouncedBeep = useCallback(() => {
+    if (beepTimerRef.current) clearTimeout(beepTimerRef.current);
+    beepTimerRef.current = setTimeout(() => {
+      selectionBeep();
+    }, 400);
+  }, []);
 
   useEffect(() => {
     const channel = supabase
@@ -76,7 +86,8 @@ export function RealtimeNotification({
             }, 10000);
           }
 
-          // Refresh page data on any new assignment
+          // Beep for new round selection + refresh page data
+          debouncedBeep();
           debouncedRefresh();
         }
       )

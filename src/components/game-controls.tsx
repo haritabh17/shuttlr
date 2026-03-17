@@ -2,7 +2,8 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { unlockAudio } from "@/lib/sounds";
 
 interface GameControlsProps {
   session: {
@@ -32,6 +33,13 @@ export function GameControls({
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Unlock Web Audio on first user interaction (browser autoplay policy)
+  useEffect(() => {
+    const handler = () => { unlockAudio(); document.removeEventListener("click", handler); };
+    document.addEventListener("click", handler, { once: true });
+    return () => document.removeEventListener("click", handler);
+  }, []);
 
   async function updateStatus(newStatus: string) {
     setError(null);

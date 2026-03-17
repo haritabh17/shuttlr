@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { gameOverBuzzer, setMuted, isMuted } from "@/lib/sounds";
 
 interface SelectionTimerProps {
   sessionId: string;
@@ -23,6 +24,12 @@ export function SelectionTimer({
 }: SelectionTimerProps) {
   const router = useRouter();
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const buzzerFiredRef = useRef(false);
+
+  useEffect(() => {
+    // Reset buzzer flag when phase changes
+    buzzerFiredRef.current = false;
+  }, [currentPhase, currentRoundStartedAt]);
 
   useEffect(() => {
     if (sessionStatus !== "running" || !currentRoundStartedAt || currentPhase === "idle") {
@@ -41,6 +48,12 @@ export function SelectionTimer({
       const elapsed = Date.now() - startTime;
       const remaining = Math.max(0, totalMs - elapsed);
       setTimeLeft(remaining);
+
+      // Fire game-over buzzer when playing timer hits zero (once)
+      if (remaining === 0 && currentPhase === "playing" && !buzzerFiredRef.current) {
+        buzzerFiredRef.current = true;
+        gameOverBuzzer();
+      }
     };
 
     tick();
@@ -64,6 +77,8 @@ export function SelectionTimer({
     return () => clearInterval(interval);
   }, [sessionStatus, router]);
 
+  const [soundMuted, setSoundMuted] = useState(isMuted());
+
   if (sessionStatus !== "running" || timeLeft === null) return null;
 
   const isResting = currentPhase === "resting";
@@ -85,9 +100,18 @@ export function SelectionTimer({
       }`}
     >
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-          {isResting ? "Rest Time" : "Game Time"}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            {isResting ? "Rest Time" : "Game Time"}
+          </p>
+          <button
+            onClick={() => { const next = !soundMuted; setSoundMuted(next); setMuted(next); }}
+            className="text-sm opacity-60 hover:opacity-100 transition-opacity"
+            title={soundMuted ? "Unmute sounds" : "Mute sounds"}
+          >
+            {soundMuted ? "🔇" : "🔊"}
+          </button>
+        </div>
         {isResting && (
           <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
             Next round starting soon
