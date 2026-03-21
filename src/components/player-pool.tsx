@@ -169,13 +169,7 @@ export function PlayerPool({
             >
               Add Players
             </button>
-            <button
-              onClick={addAllMembers}
-              disabled={loading}
-              className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              {loading ? "Adding..." : "Add All"}
-            </button>
+
           </>
         )}
 
@@ -218,7 +212,7 @@ export function PlayerPool({
         <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-8 text-center dark:border-zinc-700 dark:bg-zinc-900">
           <p className="text-zinc-500 dark:text-zinc-400">
             No players in this session yet.
-            {isManager && " Click 'Add All Club Members' to populate."}
+            {isManager && " Click 'Add Players' to add members."}
             {!isManager && " Click 'Join Session' to add yourself."}
           </p>
         </div>
