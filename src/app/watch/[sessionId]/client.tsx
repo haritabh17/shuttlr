@@ -181,6 +181,12 @@ function SessionView({ sessionId }: { sessionId: string }) {
     : 0;
   const currentAssignments = activeAssignments.filter((a) => a.round === maxRound);
 
+  const upcomingAssignments = assignments.filter((a) => a.status === "upcoming");
+  const upcomingRound = upcomingAssignments.length > 0
+    ? Math.max(...upcomingAssignments.map((a) => a.round))
+    : 0;
+  const nextAssignments = upcomingAssignments.filter((a) => a.round === upcomingRound);
+
   const waitingPlayers = players.filter((p) => p.status === "available");
 
   return (
@@ -250,6 +256,57 @@ function SessionView({ sessionId }: { sessionId: string }) {
             </div>
           );
         })}
+
+        {/* Upcoming Games */}
+        {nextAssignments.length > 0 && (
+          <>
+            <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mt-2">
+              Up Next
+            </h2>
+            {courts.filter((c) => !c.locked).map((court) => {
+              const courtPlayers = nextAssignments.filter((a) => a.courtId === court.id);
+              if (courtPlayers.length === 0) return null;
+              const team1 = courtPlayers.slice(0, 2);
+              const team2 = courtPlayers.slice(2, 4);
+
+              return (
+                <div
+                  key={`next-${court.id}`}
+                  className="rounded-xl border border-dashed border-teal-300 bg-teal-50/50 p-4 dark:border-teal-800 dark:bg-teal-950/30"
+                >
+                  <h3 className="mb-3 text-sm font-semibold text-teal-600 dark:text-teal-400">
+                    {court.name}
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 space-y-1">
+                      {team1.map((a) => (
+                        <div key={a.id} className="flex items-center gap-2">
+                          <PlayerName
+                            name={a.player?.name || "—"}
+                            gender={a.player?.gender}
+                            className="text-zinc-900 dark:text-zinc-100"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <span className="text-xs font-bold text-teal-300 dark:text-teal-700">VS</span>
+                    <div className="flex-1 space-y-1 text-right">
+                      {team2.map((a) => (
+                        <div key={a.id} className="flex items-center justify-end gap-2">
+                          <PlayerName
+                            name={a.player?.name || "—"}
+                            gender={a.player?.gender}
+                            className="text-zinc-900 dark:text-zinc-100"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
 
         {/* Waiting Players */}
         {waitingPlayers.length > 0 && (
