@@ -127,11 +127,7 @@ export function CourtView({
                           className="text-zinc-900 dark:text-zinc-100"
                         />
                       </div>
-                      {isManager && (
-                        <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                          L{a.user?.level || "?"}
-                        </span>
-                      )}
+
                     </div>
                   );
                 })}
