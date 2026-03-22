@@ -141,7 +141,7 @@ function SessionView({ sessionId }: { sessionId: string }) {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5000); // refresh every 5s
+    const interval = setInterval(fetchData, 2000); // refresh every 2s
     return () => clearInterval(interval);
   }, [fetchData]);
 
