@@ -210,53 +210,6 @@ function SessionView({ sessionId }: { sessionId: string }) {
       </div>
 
       <div className="mx-auto max-w-2xl px-4 mt-4 space-y-4">
-        {/* Courts */}
-        {courts.filter((c) => !c.locked).map((court) => {
-          const courtPlayers = currentAssignments.filter((a) => a.courtId === court.id);
-          const team1 = courtPlayers.slice(0, 2);
-          const team2 = courtPlayers.slice(2, 4);
-
-          return (
-            <div
-              key={court.id}
-              className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
-            >
-              <h3 className="mb-3 text-sm font-semibold text-zinc-500 dark:text-zinc-400">
-                {court.name}
-              </h3>
-              {courtPlayers.length > 0 ? (
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 space-y-1">
-                    {team1.map((a) => (
-                      <div key={a.id} className="flex items-center gap-2">
-                        <PlayerName
-                          name={a.player?.name || "—"}
-                          gender={a.player?.gender}
-                          className="text-zinc-900 dark:text-zinc-100"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <span className="text-xs font-bold text-zinc-300 dark:text-zinc-600">VS</span>
-                  <div className="flex-1 space-y-1 text-right">
-                    {team2.map((a) => (
-                      <div key={a.id} className="flex items-center justify-end gap-2">
-                        <PlayerName
-                          name={a.player?.name || "—"}
-                          gender={a.player?.gender}
-                          className="text-zinc-900 dark:text-zinc-100"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-zinc-400">No game in progress</p>
-              )}
-            </div>
-          );
-        })}
-
         {/* Upcoming Games */}
         {nextAssignments.length > 0 && (
           <>
@@ -290,6 +243,59 @@ function SessionView({ sessionId }: { sessionId: string }) {
                       ))}
                     </div>
                     <span className="text-xs font-bold text-teal-300 dark:text-teal-700">VS</span>
+                    <div className="flex-1 space-y-1 text-right">
+                      {team2.map((a) => (
+                        <div key={a.id} className="flex items-center justify-end gap-2">
+                          <PlayerName
+                            name={a.player?.name || "—"}
+                            gender={a.player?.gender}
+                            className="text-zinc-900 dark:text-zinc-100"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
+
+        {/* Current Games */}
+        {currentAssignments.length > 0 && (
+          <>
+            {nextAssignments.length > 0 && (
+              <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 mt-2">
+                Now Playing
+              </h2>
+            )}
+            {courts.filter((c) => !c.locked).map((court) => {
+              const courtPlayers = currentAssignments.filter((a) => a.courtId === court.id);
+              if (courtPlayers.length === 0) return null;
+              const team1 = courtPlayers.slice(0, 2);
+              const team2 = courtPlayers.slice(2, 4);
+
+              return (
+                <div
+                  key={court.id}
+                  className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
+                >
+                  <h3 className="mb-3 text-sm font-semibold text-zinc-500 dark:text-zinc-400">
+                    {court.name}
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 space-y-1">
+                      {team1.map((a) => (
+                        <div key={a.id} className="flex items-center gap-2">
+                          <PlayerName
+                            name={a.player?.name || "—"}
+                            gender={a.player?.gender}
+                            className="text-zinc-900 dark:text-zinc-100"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <span className="text-xs font-bold text-zinc-300 dark:text-zinc-600">VS</span>
                     <div className="flex-1 space-y-1 text-right">
                       {team2.map((a) => (
                         <div key={a.id} className="flex items-center justify-end gap-2">
