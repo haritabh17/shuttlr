@@ -157,6 +157,42 @@ export async function POST(
       teammate_history: teammateHistory[sp.user!.id] || {},
     }));
 
+  // Increment play_count for players who were on court in the previous round
+  // (deferred from last selection so swaps during a round are respected)
+  const { data: prevRoundData } = await supabase
+    .from("court_assignments")
+    .select("round")
+    .eq("session_id", sessionId)
+    .order("round", { ascending: false })
+    .limit(1);
+
+  const prevRound = prevRoundData?.[0]?.round ?? 0;
+  if (prevRound > 0) {
+    const { data: prevAssignments } = await admin
+      .from("court_assignments")
+      .select("user_id")
+      .eq("session_id", sessionId)
+      .eq("round", prevRound);
+
+    const prevPlayerIds = [...new Set((prevAssignments ?? []).map((a: any) => a.user_id))];
+    const now = new Date().toISOString();
+    for (const playerId of prevPlayerIds) {
+      const sp = pool.find((p) => p.id === playerId);
+      if (sp) {
+        sp.play_count += 1;
+        sp.last_played_at = now;
+        await admin
+          .from("session_players")
+          .update({
+            play_count: sp.play_count,
+            last_played_at: now,
+          })
+          .eq("session_id", sessionId)
+          .eq("user_id", playerId);
+      }
+    }
+  }
+
   // Return current players to pool
   await admin
     .from("session_players")
@@ -197,15 +233,11 @@ export async function POST(
   if (assignmentRows.length > 0) {
     await admin.from("court_assignments").insert(assignmentRows);
 
-    // Update session_players status and play count
+    // Update session_players status (play_count incremented at next round's selection)
     for (const playerId of selectedPlayerIds) {
       await admin
         .from("session_players")
-        .update({
-          status: "playing",
-          play_count: pool.find((p) => p.id === playerId)!.play_count + 1,
-          last_played_at: new Date().toISOString(),
-        })
+        .update({ status: "playing" })
         .eq("session_id", sessionId)
         .eq("user_id", playerId);
     }

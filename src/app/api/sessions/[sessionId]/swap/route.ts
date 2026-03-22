@@ -103,22 +103,11 @@ export async function POST(
       .eq("user_id", courtPlayerId);
     if (outErr) console.error("Swap: outgoing status update failed:", outErr);
 
-    // Get incoming player's current play_count
-    const { data: poolPlayer, error: fetchErr } = await admin
-      .from("session_players")
-      .select("play_count")
-      .eq("session_id", sessionId)
-      .eq("user_id", poolPlayerId)
-      .single();
-    if (fetchErr) console.error("Swap: fetch pool player failed:", fetchErr);
-
+    // Set incoming player to playing (play_count updated at next round's selection
+    // based on who's actually on court)
     const { error: inErr } = await admin
       .from("session_players")
-      .update({
-        status: "playing",
-        play_count: (poolPlayer?.play_count ?? 0) + 1,
-        last_played_at: new Date().toISOString(),
-      })
+      .update({ status: "playing" })
       .eq("session_id", sessionId)
       .eq("user_id", poolPlayerId);
     if (inErr) console.error("Swap: incoming status update failed:", inErr);

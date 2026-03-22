@@ -60,19 +60,13 @@ export async function POST(
     .eq("session_id", sessionId)
     .eq("assignment_status", "upcoming");
 
-  // Decrement play_count for playing players
-  const { data: playingPlayers } = await admin
+  // Reset playing players to available (no play_count decrement needed —
+  // count is only incremented at next round's selection, not at assignment time)
+  await admin
     .from("session_players")
-    .select("id, play_count")
+    .update({ status: "available" })
     .eq("session_id", sessionId)
     .eq("status", "playing");
-
-  for (const p of playingPlayers ?? []) {
-    await admin
-      .from("session_players")
-      .update({ status: "available", play_count: Math.max(0, (p.play_count ?? 1) - 1) })
-      .eq("id", p.id);
-  }
 
   // Reset selected players too
   await admin
