@@ -8,6 +8,7 @@ import { PlayerPool } from "@/components/player-pool";
 import { RealtimeNotification } from "@/components/realtime-notification";
 import { EditSessionSettings } from "@/components/edit-session-settings";
 import { NextUpPanel } from "@/components/next-up-panel";
+import { SpectatorShareButton } from "@/components/spectator-share";
 import { SwapProvider } from "@/components/swap-context";
 import { LIMITS } from "@/lib/limits";
 
@@ -265,6 +266,10 @@ export default async function GamePage({
                 )}
               </div>
             </div>
+            <div className="flex items-center gap-2">
+            {isManager && !isReadOnly && (
+              <SpectatorShareButton sessionId={sessionId} currentPin={(session as any).spectator_pin} />
+            )}
             <span
               className={`rounded-full px-3 py-1 text-xs font-medium capitalize ${
                 session.status === "running"
@@ -278,6 +283,7 @@ export default async function GamePage({
             >
               {session.status}
             </span>
+            </div>
           </div>
         </div>
       </header>
