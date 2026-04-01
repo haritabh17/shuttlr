@@ -143,6 +143,9 @@ export function PlayerPool({
   }
 
   const activePlayers = players.filter((p) => p.status !== "removed");
+  const removedPlayers = [...players.filter((p) => p.status === "removed")].sort((a, b) => 
+    (a.user?.full_name || "").localeCompare(b.user?.full_name || "")
+  );
   const order = ["pending", "playing", "selected", "available", "resting", "removed"];
   const sorted = [...activePlayers].sort((a, b) => {
     if (sortBy === "name-asc") {
@@ -337,6 +340,46 @@ export function PlayerPool({
           </table>
         </div>
       )}
+
+      {/* Removed Players */}
+      <section className="mt-6">
+        <h3 className="mb-3 text-sm font-semibold text-zinc-500 dark:text-zinc-400">
+          Removed Players ({removedPlayers.length})
+        </h3>
+
+        {removedPlayers.length === 0 ? (
+          <p className="text-sm text-zinc-400">No players removed</p>
+        ) : (
+          <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+            <table className="w-full text-sm">
+              <tbody>
+                {removedPlayers.map((player) => {
+                  const user = player.user;
+                  return (
+                  <tr key={player.id} className="border-b border-zinc-50 last:border-0 dark:border-zinc-800/50">
+                    <td className="px-4 py-2.5">
+                      <PlayerName name={player.user?.full_name || "Unknown"} gender={player.user?.gender} />
+                      {sessionId && user && (
+                        <button
+                          onClick={() => setShowPartnerModal({ id: user.id, name: user.full_name || "Unknown" })}
+                          className="ml-2 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                          title="View partner stats"
+                        >
+                          📊
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-center text-zinc-500 dark:text-zinc-400">
+                      {player.play_count}
+                    </td>
+                  </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       {showAddModal && sessionId && clubMembers && (
         <AddPlayerModal
