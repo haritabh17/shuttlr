@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AddPlayerModal } from "./add-player-modal";
 import { PlayerName } from "./player-name";
 import { useSwap } from "./swap-context";
+import { PlayerPartnerModal } from "./player-partner-modal";
 
 interface Player {
   id: string;
@@ -57,6 +58,7 @@ export function PlayerPool({
   const [showAddModal, setShowAddModal] = useState(false);
   const [sortBy, setSortBy] = useState<"status" | "name-asc" | "name-desc" | "games-asc" | "games-desc">("status");
   const { selected: swapSelected, select: swapSelect, loading: swapLoading } = useSwap();
+  const [showPartnerModal, setShowPartnerModal] = useState<{ id: string; name: string } | null>(null);
 
   const isInSession = players.some(
     (p) => p.user?.id === currentUserId && p.status !== "removed"
@@ -274,6 +276,16 @@ export function PlayerPool({
                         name={player.user?.full_name || "Unknown"}
                         gender={player.user?.gender}
                       />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (player.user) setShowPartnerModal({ id: player.user.id, name: player.user.full_name || "Unknown" });
+                        }}
+                        className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                        title="View partner stats"
+                      >
+                        📊
+                      </button>
                     </div>
                     {player.user?.id === currentUserId && (
                       <span className="ml-1.5 text-xs text-blue-500">(you)</span>
@@ -332,6 +344,15 @@ export function PlayerPool({
           clubMembers={clubMembers}
           existingPlayers={players}
           onClose={() => setShowAddModal(false)}
+        />
+      )}
+
+      {showPartnerModal && sessionId && (
+        <PlayerPartnerModal
+          playerId={showPartnerModal.id}
+          playerName={showPartnerModal.name}
+          sessionId={sessionId}
+          onClose={() => setShowPartnerModal(null)}
         />
       )}
     </div>
