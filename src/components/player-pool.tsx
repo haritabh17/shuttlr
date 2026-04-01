@@ -32,6 +32,8 @@ function statusColor(status: string) {
       return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
     case "pending":
       return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400";
+    case "sitting_out":
+      return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400";
     default:
       return "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400";
   }
@@ -140,6 +142,16 @@ export function PlayerPool({
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ playerId }),
+    });
+    router.refresh();
+  }
+
+  async function sitOutPlayer(playerId: string, playerName: string) {
+    if (!sessionId || !confirm(`${playerName} will sit out the next round and return the round after.`)) return;
+    await fetch(`/api/sessions/${sessionId}/players`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerId, action: "sit_out" }),
     });
     router.refresh();
   }
@@ -326,12 +338,21 @@ export function PlayerPool({
                           </button>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => player.user && removePlayer(player.user.id, player.user.full_name || "this player")}
-                          className="text-xs text-red-500 hover:text-red-700"
-                        >
-                          Remove
-                        </button>
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => player.user && sitOutPlayer(player.user.id, player.user.full_name || "this player")}
+                            disabled={loading || player.status === "sitting_out" || player.status === "removed"}
+                            className="text-xs text-purple-600 hover:text-purple-800 disabled:opacity-50"
+                          >
+                            Sit out
+                          </button>
+                          <button
+                            onClick={() => player.user && removePlayer(player.user.id, player.user.full_name || "this player")}
+                            className="text-xs text-red-500 hover:text-red-700"
+                          >
+                            Remove
+                          </button>
+                        </div>
                       )}
                     </td>
                   )}

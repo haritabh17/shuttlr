@@ -455,6 +455,13 @@ async function runSelection(
         .eq("session_id", session.id)
         .in("status", ["playing", "selected"]);
 
+      // Restore sitting_out players to available (they sit out one round, then return)
+      await supabase
+        .from("session_players")
+        .update({ status: "available" })
+        .eq("session_id", session.id)
+        .eq("status", "sitting_out");
+
       // Mark selected players as playing
       for (const playerId of selectedPlayerIds) {
         await supabase

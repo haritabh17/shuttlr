@@ -82,7 +82,7 @@ export async function POST(
   return NextResponse.json({ ok: true, added: playerIds.length });
 }
 
-// Admit or reject a pending player (managers only)
+// Admit, reject, or sit out a player
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ sessionId: string }> }
@@ -93,8 +93,8 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { playerId, action } = await request.json();
-  if (!playerId || !["admit", "reject"].includes(action)) {
-    return NextResponse.json({ error: "playerId and action (admit/reject) required" }, { status: 400 });
+  if (!playerId || !["admit", "reject", "sit_out"].includes(action)) {
+    return NextResponse.json({ error: "playerId and action (admit/reject/sit_out) required" }, { status: 400 });
   }
 
   const { data: session } = await supabase
@@ -104,7 +104,6 @@ export async function PATCH(
     .single();
   if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
 
-  // Only managers can admit/reject
   const { data: membership } = await supabase
     .from("club_members")
     .select("role")
@@ -112,11 +111,49 @@ export async function PATCH(
     .eq("user_id", user.id)
     .eq("status", "active")
     .single();
+
+  const admin = createAdminClient();
+
+  if (action === "sit_out") {
+    // Non-managers can only sit out themselves
+    if (membership?.role !== "manager" && playerId !== user.id) {
+      return NextResponse.json({ error: "You can only sit out yourself" }, { status: 403 });
+    }
+
+    // Check current status
+    const { data: sessionPlayer } = await admin
+      .from("session_players")
+      .select("status")
+      .eq("session_id", sessionId)
+      .eq("user_id", playerId)
+      .single();
+
+    if (sessionPlayer?.status === "playing") {
+      // Mark as sitting_out — they finish current game but won't be selected next round
+      await admin
+        .from("session_players")
+        .update({ status: "sitting_out" })
+        .eq("session_id", sessionId)
+        .eq("user_id", playerId);
+
+      return NextResponse.json({ ok: true, note: "Will sit out after current game" });
+    }
+
+    // Immediately set to sitting_out for available/resting players
+    await admin
+      .from("session_players")
+      .update({ status: "sitting_out" })
+      .eq("session_id", sessionId)
+      .eq("user_id", playerId)
+      .in("status", ["available", "resting"]);
+
+    return NextResponse.json({ ok: true });
+  }
+
+  // Only managers can admit/reject
   if (!membership || membership.role !== "manager") {
     return NextResponse.json({ error: "Only managers can admit players" }, { status: 403 });
   }
-
-  const admin = createAdminClient();
 
   if (action === "admit") {
     await admin
