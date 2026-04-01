@@ -77,7 +77,7 @@ export function NextUpPanel({ courts, round, isManager, isReadOnly }: NextUpPane
                         isSelected
                           ? "bg-teal-100 ring-2 ring-teal-500 dark:bg-teal-900/40 dark:ring-teal-400"
                           : isSwapTarget && isManager
-                          ? "bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/20 dark:hover:bg-teal-900/30"
+                          ? "border-2 border-teal-500 bg-teal-100 hover:bg-teal-200 dark:border-teal-400 dark:bg-teal-900/30 dark:hover:bg-teal-900/50"
                           : "bg-zinc-50 dark:bg-zinc-800"
                       }`}
                     >

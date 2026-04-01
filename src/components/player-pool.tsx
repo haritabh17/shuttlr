@@ -268,7 +268,7 @@ export function PlayerPool({
                   }}
                   className={`border-b border-zinc-50 last:border-0 dark:border-zinc-800/50 ${
                     isSwapHighlight
-                      ? "bg-teal-50 hover:bg-teal-100 cursor-pointer dark:bg-teal-950/20 dark:hover:bg-teal-900/30"
+                      ? "border-2 border-teal-500 bg-teal-100 hover:bg-teal-200 cursor-pointer dark:border-teal-400 dark:bg-teal-900/30 dark:hover:bg-teal-900/50"
                       : player.user?.id === currentUserId
                       ? "bg-blue-50/50 dark:bg-blue-950/20"
                       : ""
