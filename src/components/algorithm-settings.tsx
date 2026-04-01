@@ -93,12 +93,12 @@ export function AlgorithmSettings({
         label="Skill Balance"
         value={skillBalance}
         onChange={onSkillBalanceChange}
-        leftLabel="Random"
-        rightLabel="Strictly Balanced"
+        leftLabel="Varied Skills"
+        rightLabel="Matched Skills"
         displayValue={
-          skillBalance < 30 ? "Low" : skillBalance < 70 ? "Medium" : "High"
+          skillBalance < 30 ? "Varied" : skillBalance < 70 ? "Balanced" : "Matched"
         }
-        description="Spread skill levels evenly across courts vs allow natural groupings."
+        description="How strict to match skill levels within each court (based on standard deviation)."
       />
 
       <div className="mb-5">

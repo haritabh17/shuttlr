@@ -428,13 +428,18 @@ function scoreAssignment(
 ): number {
   const all = [...teamA, ...teamB];
 
-  // 1. Skill balance: lower variance across teams = better
-  //    Compare average level of each team
-  const avgA = (teamA[0].level + teamA[1].level) / 2;
-  const avgB = (teamB[0].level + teamB[1].level) / 2;
-  const levelDiff = Math.abs(avgA - avgB);
-  // Max diff is 4 (lvl 1 vs 5), normalize to 0-1
-  const skillScore = 1 - levelDiff / 4;
+  // 1. Skill variety: lower std deviation across all 4 players = matched skills
+  //    Higher std deviation = varied skills in the group
+  //    skill_balance slider: 0 = allow varied (no penalty), 100 = require matched
+  const levels = [teamA[0].level, teamA[1].level, teamB[0].level, teamB[1].level];
+  const mean = (levels[0] + levels[1] + levels[2] + levels[3]) / 4;
+  const variance = ((levels[0] - mean) ** 2 + (levels[1] - mean) ** 2 + (levels[2] - mean) ** 2 + (levels[3] - mean) ** 2) / 4;
+  const stdDev = Math.sqrt(variance);
+  // Max possible stdDev is 2 (levels 1 vs 5), normalize to 0-1
+  const normalizedVariety = stdDev / 2;
+  // At slider 100: stdDev=0 → score=1, stdDev=2 → score=0
+  // At slider 0: always score=1 (no penalty for variety)
+  const skillScore = 1 - normalizedVariety * (config.skill_balance / 100);
 
   // 2. Partner variety: penalize repeat pairings within teams
   const pairScoreA = getPairPenalty(teamA[0].id, teamA[1].id, pairLookup);
