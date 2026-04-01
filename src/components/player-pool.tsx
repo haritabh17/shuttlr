@@ -44,6 +44,7 @@ export function PlayerPool({
   sessionId,
   currentUserId,
   clubMembers,
+  nicknameMap,
 }: {
   players: Player[];
   isManager: boolean;
@@ -51,6 +52,7 @@ export function PlayerPool({
   sessionId?: string;
   currentUserId?: string;
   clubMembers?: { user_id: string | null; user: { id: string; full_name: string } | null }[];
+  nicknameMap?: Record<string, string>;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -396,6 +398,7 @@ export function PlayerPool({
           playerName={showPartnerModal.name}
           sessionId={sessionId}
           onClose={() => setShowPartnerModal(null)}
+          nicknameMap={nicknameMap}
         />
       )}
     </div>

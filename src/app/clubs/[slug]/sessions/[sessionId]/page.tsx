@@ -353,6 +353,7 @@ export default async function GamePage({
               ...cm,
               user: cm.user ? { ...cm.user, full_name: nicknameMap[cm.user.id] || cm.user.full_name } : cm.user,
             }))}
+            nicknameMap={nicknameMap}
           />
         </section>
         </SwapProvider>

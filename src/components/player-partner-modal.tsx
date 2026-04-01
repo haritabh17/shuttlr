@@ -14,11 +14,13 @@ export function PlayerPartnerModal({
   playerName,
   sessionId,
   onClose,
+  nicknameMap,
 }: {
   playerId: string;
   playerName: string;
   sessionId: string;
   onClose: () => void;
+  nicknameMap?: Record<string, string>;
 }) {
   const [partners, setPartners] = useState<PartnerStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,7 +123,7 @@ export function PlayerPartnerModal({
                   className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800"
                 >
                   <span className="text-sm text-zinc-900 dark:text-zinc-100">
-                    {p.partner_name}
+                    {nicknameMap?.[p.partner_id] || p.partner_name}
                   </span>
                   <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
                     {p.times_paired}× played
