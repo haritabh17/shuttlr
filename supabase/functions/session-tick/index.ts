@@ -440,29 +440,11 @@ async function runSelection(
     // Update partner history
     const pairs = extractPairs(assignments);
     for (const pair of pairs) {
-      await supabase.from("partner_history").upsert(
-        {
-          session_id: session.id,
-          player1_id: pair.player1_id,
-          player2_id: pair.player2_id,
-          times_paired: 1,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "session_id,player1_id,player2_id",
-          ignoreDuplicates: false,
-        },
-      );
-      // Increment if exists — upsert doesn't do increment, so do a manual update
-      try {
-        await supabase.rpc("increment_partner_history", {
-          p_session_id: session.id,
-          p_player1_id: pair.player1_id,
-          p_player2_id: pair.player2_id,
-        });
-      } catch {
-        // RPC might not exist yet, partner_history upsert handles creation
-      }
+      await supabase.rpc("increment_partner_history", {
+        p_session_id: session.id,
+        p_player1_id: pair.player1_id,
+        p_player2_id: pair.player2_id,
+      });
     }
 
     if (assignmentStatus === "active") {
