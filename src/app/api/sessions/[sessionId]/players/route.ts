@@ -66,7 +66,7 @@ export async function POST(
       if (existing.status === "removed") {
         await admin
           .from("session_players")
-          .update({ status: row.status, play_count: 0 })
+          .update({ status: row.status })
           .eq("session_id", row.session_id)
           .eq("user_id", row.user_id);
       }
