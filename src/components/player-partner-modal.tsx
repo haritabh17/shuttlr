@@ -24,71 +24,57 @@ export function PlayerPartnerModal({
 }) {
   const [partners, setPartners] = useState<PartnerStats[]>([]);
   const [loading, setLoading] = useState(true);
-  const [offset, setOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const limit = 5;
 
   const supabase = createClient();
 
-  async function loadPartners(reset = false) {
-    const currentOffset = reset ? 0 : offset;
-    const newOffset = reset ? limit : offset + limit;
-
-    const { data, error } = await (supabase as any)
-      .from("partner_history")
-      .select(`
-        times_paired,
-        player1_id,
-        player2_id
-      `)
-      .eq("session_id", sessionId)
-      .or(`player1_id.eq.${playerId},player2_id.eq.${playerId}`)
-      .order("times_paired", { ascending: false })
-      .range(currentOffset, newOffset - 1);
-
-    if (error) {
-      console.error("Failed to load partners:", error);
-      return;
-    }
-
-    const partnerIds = (data ?? []).map((ph: any) =>
-      ph.player1_id === playerId ? ph.player2_id : ph.player1_id
-    );
-
-    if (partnerIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", partnerIds);
-
-      const nameMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
-
-      const enriched = (data ?? []).map((ph: any) => {
-        const partnerId = ph.player1_id === playerId ? ph.player2_id : ph.player1_id;
-        return {
-          partner_id: partnerId,
-          partner_name: nameMap.get(partnerId) || "Unknown",
-          times_paired: ph.times_paired,
-        };
-      });
-
-      if (reset) {
-        setPartners(enriched);
-      } else {
-        setPartners((prev) => [...prev, ...enriched]);
-      }
-      setHasMore((data ?? []).length === limit);
-    } else {
-      setHasMore(false);
-    }
-
-    setOffset(newOffset);
-    setLoading(false);
-  }
-
   useEffect(() => {
-    loadPartners(true);
-  }, [playerId, sessionId]);
+    async function loadPartners() {
+      const { data, error } = await (supabase as any)
+        .from("partner_history")
+        .select(`
+          times_paired,
+          player1_id,
+          player2_id
+        `)
+        .eq("session_id", sessionId)
+        .or(`player1_id.eq.${playerId},player2_id.eq.${playerId}`)
+        .order("times_paired", { ascending: false });
+
+      if (error) {
+        console.error("Failed to load partners:", error);
+        setLoading(false);
+        return;
+      }
+
+      const partnerIds = (data ?? []).map((ph: any) =>
+        ph.player1_id === playerId ? ph.player2_id : ph.player1_id
+      );
+
+      if (partnerIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", partnerIds);
+
+        const nameMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
+
+        const enriched = (data ?? []).map((ph: any) => {
+          const partnerId = ph.player1_id === playerId ? ph.player2_id : ph.player1_id;
+          return {
+            partner_id: partnerId,
+            partner_name: nameMap.get(partnerId) || "Unknown",
+            times_paired: ph.times_paired,
+          };
+        });
+
+        setPartners(enriched);
+      }
+
+      setLoading(false);
+    }
+
+    loadPartners();
+  }, [playerId, sessionId, supabase]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
@@ -115,32 +101,21 @@ export function PlayerPartnerModal({
             No partners yet — stats appear after Round 1
           </p>
         ) : (
-          <>
-            <div className="space-y-2">
-              {partners.map((p) => (
-                <div
-                  key={p.partner_id}
-                  className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800"
-                >
-                  <span className="text-sm text-zinc-900 dark:text-zinc-100">
-                    {nicknameMap?.[p.partner_id] || p.partner_name}
-                  </span>
-                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                    {p.times_paired}× played
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {hasMore && (
-              <button
-                onClick={() => loadPartners(false)}
-                className="mt-3 w-full rounded-lg border border-zinc-200 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+          <div className="max-h-64 overflow-y-auto space-y-2">
+            {partners.map((p) => (
+              <div
+                key={p.partner_id}
+                className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800"
               >
-                Show more
-              </button>
-            )}
-          </>
+                <span className="text-sm text-zinc-900 dark:text-zinc-100">
+                  {nicknameMap?.[p.partner_id] || p.partner_name}
+                </span>
+                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  {p.times_paired}× played
+                </span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
