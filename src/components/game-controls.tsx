@@ -54,47 +54,32 @@ export function GameControls({
     }
 
     setLoading(newStatus);
-    const updates: Record<string, unknown> = { status: newStatus };
-    if (newStatus === "running" && session.status === "initiated") {
-      updates.started_at = new Date().toISOString();
-      updates.current_phase = "idle"; // worker will pick this up and run first selection
-    }
-    if (newStatus === "running" && (session.status === "paused" || session.status === "ended")) {
-      // Resume: restore timer from where it was paused
-      const pausedElapsed = (session as any).paused_elapsed_ms;
-      if (pausedElapsed && session.status === "paused") {
-        // Set current_round_started_at back in time so timer picks up where it left off
-        const resumedStart = new Date(Date.now() - pausedElapsed).toISOString();
-        updates.current_round_started_at = resumedStart;
-        updates.current_phase = (session as any).paused_phase || "playing";
-        (updates as any).paused_phase = null;
-      } else {
-        updates.started_at = new Date().toISOString();
-        updates.current_round_started_at = new Date().toISOString();
-      }
-      updates.ended_at = null;
-      (updates as any).paused_elapsed_ms = null;
-    }
+
+    let pausedElapsedMs: number | undefined;
+    let pausedPhase: string | undefined;
     if (newStatus === "paused") {
-      // Save current phase and elapsed time before pausing
-      const currentPhase = (session as any).current_phase || "playing";
-      (updates as any).paused_phase = currentPhase;
-      updates.current_phase = "idle"; // stops the edge function from processing
+      pausedPhase = (session as any).current_phase || "playing";
       const roundStarted = (session as any).current_round_started_at;
       if (roundStarted) {
-        const elapsed = Date.now() - new Date(roundStarted).getTime();
-        (updates as any).paused_elapsed_ms = Math.max(0, elapsed);
+        pausedElapsedMs = Math.max(0, Date.now() - new Date(roundStarted).getTime());
       }
     }
-    if (newStatus === "ended") {
-      updates.ended_at = new Date().toISOString();
-      updates.current_phase = "idle";
-    }
 
-    await supabase
-      .from("sessions")
-      .update(updates as any)
-      .eq("id", session.id);
+    const res = await fetch(`/api/sessions/${session.id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: newStatus,
+        pausedElapsedMs,
+        pausedPhase,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error || "Failed to update session");
+      setLoading(null);
+      return;
+    }
 
     setLoading(null);
     router.refresh();

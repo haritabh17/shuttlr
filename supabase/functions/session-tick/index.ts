@@ -526,12 +526,8 @@ async function runSelection(
     await logEvent(supabase, session, "selection_run", {
       round: newRound,
       assignment_status: assignmentStatus,
-      courts: assignments.map((a) => ({
-        court_index: a.court_index,
-        game_type: a.game_type,
-        team_a: a.team_a.map((p) => p.id),
-        team_b: a.team_b.map((p) => p.id),
-      })),
+      courts: assignments.length,
+      players: selectedPlayerIds.length,
     });
   } catch (err) {
     await supabase
@@ -623,7 +619,9 @@ async function sendPushNotifications(
   const sessionUrl = `/clubs/${session.club_id}/sessions/${session.id}`;
   const tag = `round-${session.id}-${round}${isUpcoming ? "-upcoming" : ""}`;
 
-  // Send per-player notifications with court + teammate details
+  // Batch push: one request per notification group (same title/body/tag)
+  const groups = new Map<string, { userIds: string[]; title: string; body: string }>();
+
   for (const playerId of playerIds) {
     const ctx = playerContexts?.get(playerId);
     let body: string;
@@ -639,6 +637,14 @@ async function sendPushNotifications(
         : `Round ${round} — Head to your court!`;
     }
 
+    const title = isUpcoming ? "🔜 You're up next!" : "🏸 You're up!";
+    const key = `${title}|${body}|${tag}`;
+    const group = groups.get(key) ?? { userIds: [], title, body };
+    group.userIds.push(playerId);
+    groups.set(key, group);
+  }
+
+  for (const group of groups.values()) {
     try {
       await fetch(`${appUrl}/api/push/send`, {
         method: "POST",
@@ -647,15 +653,15 @@ async function sendPushNotifications(
           Authorization: `Bearer ${serviceRoleKey}`,
         },
         body: JSON.stringify({
-          userIds: [playerId],
-          title: isUpcoming ? "🔜 You're up next!" : "🏸 You're up!",
-          body,
+          userIds: group.userIds,
+          title: group.title,
+          body: group.body,
           tag,
           url: sessionUrl,
         }),
       });
     } catch (err) {
-      console.error(`Push failed for ${playerId}:`, err);
+      console.error(`Push batch failed:`, err);
     }
   }
 }

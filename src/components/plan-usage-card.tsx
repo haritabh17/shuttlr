@@ -57,6 +57,14 @@ export function PlanUsageCard({
   if (!isPro) {
     if (totalSessions / limits.totalSessions >= 0.8) warnings.push(`Running low on sessions (${totalSessions} / ${limits.totalSessions})`);
     if (memberCount / limits.members >= 0.8) warnings.push(`Running low on member slots (${memberCount} / ${limits.members})`);
+    if (runningSessions >= limits.concurrentSessions) {
+      warnings.push(`Concurrent game limit in use (${runningSessions} / ${limits.concurrentSessions})`);
+    } else if (
+      limits.concurrentSessions > 1 &&
+      runningSessions / limits.concurrentSessions >= 0.8
+    ) {
+      warnings.push(`Running low on concurrent slots (${runningSessions} / ${limits.concurrentSessions})`);
+    }
   }
 
   async function handleUpgrade() {

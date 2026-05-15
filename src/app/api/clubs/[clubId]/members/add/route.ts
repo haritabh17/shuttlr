@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertMemberCapacity } from "@/lib/club-plan";
 
 export async function POST(
   request: Request,
@@ -84,6 +85,11 @@ export async function POST(
       }
       return NextResponse.json({ error: "This person is already a member of this club." }, { status: 409 });
     }
+  }
+
+  const capacity = await assertMemberCapacity(clubId, 1);
+  if (!capacity.ok) {
+    return NextResponse.json({ error: capacity.error }, { status: 403 });
   }
 
   // If no existing profile and no email → create phantom profile

@@ -19,10 +19,14 @@ export async function POST(
 
   const { data: session } = await supabase
     .from("sessions")
-    .select("club_id")
+    .select("club_id, status, ended_at")
     .eq("id", sessionId)
     .single();
   if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 });
+
+  if (session.status === "ended") {
+    return NextResponse.json({ error: "This session has ended" }, { status: 400 });
+  }
 
   const { data: membership } = await supabase
     .from("club_members")

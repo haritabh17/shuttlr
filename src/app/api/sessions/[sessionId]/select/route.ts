@@ -1,7 +1,21 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { selectPlayers, type Player } from "@/lib/selection";
+import {
+  selectPlayers,
+  extractPairs,
+  type Player,
+  type PartnerPair,
+  type AlgorithmConfig,
+} from "@/lib/selection-engine";
+
+function normalizeGender(
+  raw: string | null | undefined
+): "male" | "female" | null {
+  if (raw === "male" || raw === "M") return "male";
+  if (raw === "female" || raw === "F") return "female";
+  return null;
+}
 
 export async function POST(
   request: Request,
@@ -9,7 +23,6 @@ export async function POST(
 ) {
   const { sessionId } = await params;
   const supabase = await createClient();
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -18,7 +31,6 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Get session
   const { data: session } = await supabase
     .from("sessions")
     .select("*")
@@ -29,7 +41,6 @@ export async function POST(
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
   }
 
-  // Verify user is a manager
   const { data: membership } = await supabase
     .from("club_members")
     .select("role")
@@ -42,11 +53,9 @@ export async function POST(
     return NextResponse.json({ error: "Only managers can run selection" }, { status: 403 });
   }
 
-  // Use admin client for all writes (bypasses RLS)
   const admin = createAdminClient();
 
-  // Optimistic lock: atomically set selecting_round flag to prevent concurrent runs
-  const { data: lockRow, error: lockErr } = await admin
+  const { data: lockRow } = await admin
     .from("sessions")
     .update({ selecting: true } as any)
     .eq("id", sessionId)
@@ -58,229 +67,215 @@ export async function POST(
     return NextResponse.json({ error: "Selection already in progress" }, { status: 409 });
   }
 
-  // Ensure we release the lock on exit
   const releaseLock = () =>
     admin.from("sessions").update({ selecting: false } as any).eq("id", sessionId);
 
   try {
-
-  // Get available session players with profile data
-  const { data: sessionPlayers } = await supabase
-    .from("session_players")
-    .select(`
-      id,
-      status,
-      play_count,
-      last_played_at,
-      user_id,
-      user:profiles (
-        id,
-        full_name,
-        gender,
-        level
+    const { data: sessionPlayers } = await admin
+      .from("session_players")
+      .select(
+        `id, status, play_count, last_played_at, user_id,
+        user:profiles (id, full_name, gender, level)`
       )
-    `)
-    .eq("session_id", sessionId)
-    .in("status", ["available", "playing", "resting"]);
+      .eq("session_id", sessionId)
+      .in("status", ["available", "playing", "resting"]);
 
-  if (!sessionPlayers || sessionPlayers.length === 0) {
-    return NextResponse.json({ error: "No available players" }, { status: 400 });
-  }
-
-  // Get courts for this session (limited to number_of_courts), then filter unlocked
-  const { data: allCourts } = await supabase
-    .from("courts")
-    .select("*")
-    .eq("club_id", session.club_id)
-    .order("name");
-
-  const sessionCourts = (allCourts ?? []).slice(0, session.number_of_courts);
-  const courts = sessionCourts.filter((c) => !c.locked);
-  const nCourts = courts.length;
-
-  if (nCourts === 0) {
-    return NextResponse.json({ error: "No unlocked courts available" }, { status: 400 });
-  }
-
-  // Build teammate history from past assignments
-  const { data: pastAssignments } = await supabase
-    .from("court_assignments")
-    .select("court_id, round, user_id")
-    .eq("session_id", sessionId);
-
-  const teammateHistory: Record<string, Record<string, number>> = {};
-  if (pastAssignments) {
-    // Group by court+round
-    const groups: Record<string, string[]> = {};
-    for (const a of pastAssignments) {
-      const key = `${a.court_id}-${a.round}`;
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(a.user_id);
+    if (!sessionPlayers?.length) {
+      await releaseLock();
+      return NextResponse.json({ error: "No available players" }, { status: 400 });
     }
-    // Count co-occurrences
-    for (const group of Object.values(groups)) {
-      for (let i = 0; i < group.length; i++) {
-        for (let j = i + 1; j < group.length; j++) {
-          if (!teammateHistory[group[i]]) teammateHistory[group[i]] = {};
-          if (!teammateHistory[group[j]]) teammateHistory[group[j]] = {};
-          teammateHistory[group[i]][group[j]] =
-            (teammateHistory[group[i]][group[j]] || 0) + 1;
-          teammateHistory[group[j]][group[i]] =
-            (teammateHistory[group[j]][group[i]] || 0) + 1;
+
+    const { data: allCourts } = await admin
+      .from("courts")
+      .select("*")
+      .eq("club_id", session.club_id)
+      .order("name");
+
+    const courts = (allCourts ?? [])
+      .slice(0, session.number_of_courts)
+      .filter((c) => !c.locked);
+
+    if (courts.length === 0) {
+      await releaseLock();
+      return NextResponse.json({ error: "No unlocked courts available" }, { status: 400 });
+    }
+
+    const { data: partnerRows } = await (admin as any)
+      .from("partner_history")
+      .select("player1_id, player2_id, times_paired")
+      .eq("session_id", sessionId);
+
+    const partnerHistory: PartnerPair[] = (partnerRows ?? []).map((r: PartnerPair) => ({
+      player1_id: r.player1_id,
+      player2_id: r.player2_id,
+      times_paired: r.times_paired,
+    }));
+
+    const { data: clubMembers } = await admin
+      .from("club_members")
+      .select("user_id, invited_level, invited_gender")
+      .eq("club_id", session.club_id)
+      .in("status", ["active", "invited"]);
+
+    const memberLevelMap = new Map<string, number | null>();
+    const memberGenderMap = new Map<string, string | null>();
+    for (const cm of clubMembers ?? []) {
+      if (cm.user_id) {
+        memberLevelMap.set(cm.user_id, cm.invited_level);
+        memberGenderMap.set(cm.user_id, cm.invited_gender);
+      }
+    }
+
+    const pool: Player[] = sessionPlayers
+      .filter((sp: { user: unknown }) => sp.user)
+      .map((sp: { user: { id: string; gender: string | null; level: number | null }; status: string; play_count: number }) => ({
+        id: sp.user.id,
+        gender: normalizeGender(memberGenderMap.get(sp.user.id) || sp.user.gender),
+        level: memberLevelMap.get(sp.user.id) ?? sp.user.level ?? 3,
+        games_played: sp.play_count ?? 0,
+        is_on_court: sp.status === "playing",
+      }));
+
+    const s = session as typeof session & {
+      mixed_ratio?: number;
+      skill_balance?: number;
+      partner_variety?: number;
+      strict_gender?: boolean;
+    };
+    const config: AlgorithmConfig = {
+      mixed_ratio: s.mixed_ratio ?? 50,
+      skill_balance: s.skill_balance ?? 70,
+      partner_variety: s.partner_variety ?? 80,
+      strict_gender: s.strict_gender ?? true,
+    };
+
+    const { data: pastAssignments } = await (admin as any)
+      .from("court_assignments")
+      .select("game_type")
+      .eq("session_id", sessionId)
+      .neq("assignment_status", "upcoming");
+
+    const past = (pastAssignments ?? []) as { game_type: string | null }[];
+    const gameTypeHistory = {
+      mixed: past.filter((a) => a.game_type === "mixed").length,
+      doubles: past.filter((a) => a.game_type === "doubles").length,
+    };
+
+    const assignments = selectPlayers(
+      pool,
+      courts.length,
+      config,
+      partnerHistory,
+      gameTypeHistory
+    );
+
+    if (assignments.length === 0) {
+      await releaseLock();
+      return NextResponse.json({ error: "Could not form any courts" }, { status: 400 });
+    }
+
+    const { data: maxRoundData } = await admin
+      .from("court_assignments")
+      .select("round")
+      .eq("session_id", sessionId)
+      .order("round", { ascending: false })
+      .limit(1);
+
+    const newRound = (maxRoundData?.[0]?.round ?? 0) + 1;
+
+    const assignmentRows: {
+      session_id: string;
+      court_id: string;
+      user_id: string;
+      round: number;
+      assignment_status: string;
+      game_type: string;
+    }[] = [];
+    const selectedPlayerIds: string[] = [];
+
+    for (const court of assignments) {
+      const courtRecord = courts[court.court_index];
+      if (!courtRecord) continue;
+      for (const player of [...court.team_a, ...court.team_b]) {
+        assignmentRows.push({
+          session_id: sessionId,
+          court_id: courtRecord.id,
+          user_id: player.id,
+          round: newRound,
+          assignment_status: "active",
+          game_type: court.game_type,
+        });
+        if (!selectedPlayerIds.includes(player.id)) {
+          selectedPlayerIds.push(player.id);
         }
       }
     }
-  }
 
-  // Fetch club-specific levels from club_members
-  const { data: clubMembers } = await admin
-    .from("club_members")
-    .select("user_id, invited_level")
-    .eq("club_id", session.club_id)
-    .in("status", ["active", "invited"]);
+    if (assignmentRows.length > 0) {
+      await admin.from("court_assignments").insert(assignmentRows);
 
-  const memberLevelMap: Record<string, number | null> = {};
-  for (const cm of clubMembers ?? []) {
-    if (cm.user_id) memberLevelMap[cm.user_id] = cm.invited_level;
-  }
-
-  // Map to Player interface (club-specific level takes priority)
-  const pool: Player[] = sessionPlayers
-    .filter((sp) => sp.user)
-    .map((sp) => ({
-      id: sp.user!.id,
-      full_name: sp.user!.full_name,
-      gender: (sp.user!.gender || "M") as "M" | "F",
-      level: memberLevelMap[sp.user!.id] ?? sp.user!.level ?? 5,
-      play_count: sp.play_count,
-      last_played_at: sp.last_played_at,
-      teammate_history: teammateHistory[sp.user!.id] || {},
-    }));
-
-  // Increment play_count for players who were on court in the previous round
-  // (deferred from last selection so swaps during a round are respected)
-  const { data: prevRoundData } = await supabase
-    .from("court_assignments")
-    .select("round")
-    .eq("session_id", sessionId)
-    .order("round", { ascending: false })
-    .limit(1);
-
-  const prevRound = prevRoundData?.[0]?.round ?? 0;
-  if (prevRound > 0) {
-    const { data: prevAssignments } = await admin
-      .from("court_assignments")
-      .select("user_id")
-      .eq("session_id", sessionId)
-      .eq("round", prevRound);
-
-    const prevPlayerIds = [...new Set((prevAssignments ?? []).map((a: any) => a.user_id))];
-    const now = new Date().toISOString();
-    for (const playerId of prevPlayerIds) {
-      const sp = pool.find((p) => p.id === playerId);
-      if (sp) {
-        sp.play_count += 1;
-        sp.last_played_at = now;
-        await admin
-          .from("session_players")
-          .update({
-            play_count: sp.play_count,
-            last_played_at: now,
-          })
-          .eq("session_id", sessionId)
-          .eq("user_id", playerId);
+      for (const pair of extractPairs(assignments)) {
+        await (admin as any).rpc("increment_partner_history", {
+          p_session_id: sessionId,
+          p_player1_id: pair.player1_id,
+          p_player2_id: pair.player2_id,
+        });
       }
     }
-  }
 
-  // Return current players to pool
-  await admin
-    .from("session_players")
-    .update({ status: "available" })
-    .eq("session_id", sessionId)
-    .in("status", ["playing", "selected"]);
+    await admin
+      .from("session_players")
+      .update({ status: "available" })
+      .eq("session_id", sessionId)
+      .in("status", ["playing", "selected"]);
 
-  // Run selection
-  const assignments = selectPlayers(pool, nCourts);
+    await admin
+      .from("session_players")
+      .update({ status: "available" })
+      .eq("session_id", sessionId)
+      .eq("status", "sitting_out");
 
-  // Get current max round
-  const { data: maxRoundData } = await supabase
-    .from("court_assignments")
-    .select("round")
-    .eq("session_id", sessionId)
-    .order("round", { ascending: false })
-    .limit(1);
-
-  const newRound = (maxRoundData?.[0]?.round ?? 0) + 1;
-
-  // Write assignments
-  const assignmentRows = [];
-  const selectedPlayerIds: string[] = [];
-
-  for (const court of assignments) {
-    const courtRecord = courts![court.courtIndex];
-    for (const player of court.players) {
-      assignmentRows.push({
-        session_id: sessionId,
-        court_id: courtRecord.id,
-        user_id: player.id,
-        round: newRound,
-      });
-      selectedPlayerIds.push(player.id);
-    }
-  }
-
-  if (assignmentRows.length > 0) {
-    await admin.from("court_assignments").insert(assignmentRows);
-
-    // Update session_players status (play_count incremented at next round's selection)
+    const now = new Date().toISOString();
     for (const playerId of selectedPlayerIds) {
+      const games = pool.find((p) => p.id === playerId)?.games_played ?? 0;
       await admin
         .from("session_players")
-        .update({ status: "playing" })
+        .update({
+          status: "playing",
+          play_count: games + 1,
+          last_played_at: now,
+        })
         .eq("session_id", sessionId)
         .eq("user_id", playerId);
     }
-  }
 
-  // Update session phase: now playing with a fresh round timer
-  await admin
-    .from("sessions")
-    .update({
-      current_round_started_at: new Date().toISOString(),
-      current_phase: "playing",
-    } as any)
-    .eq("id", sessionId);
+    await admin
+      .from("sessions")
+      .update({
+        current_round_started_at: now,
+        current_phase: "playing",
+        selecting: false,
+        next_round_selected: false,
+      } as any)
+      .eq("id", sessionId);
 
-  // Log event
-  await admin.from("events").insert({
-    club_id: session.club_id,
-    session_id: sessionId,
-    actor_id: user.id,
-    actor_type: "system",
-    event_type: "selection_run",
-    payload: {
+    await admin.from("events").insert({
+      club_id: session.club_id,
+      session_id: sessionId,
+      actor_id: user.id,
+      actor_type: "human",
+      event_type: "selection_run",
+      payload: {
+        round: newRound,
+        assignment_status: "active",
+        courts: assignments.length,
+      },
+    });
+
+    return NextResponse.json({
       round: newRound,
-      courts: assignments.map((a) => ({
-        courtIndex: a.courtIndex,
-        players: a.players.map((p) => p.full_name),
-      })),
-    },
-  });
-
-  await releaseLock();
-  return NextResponse.json({
-    round: newRound,
-    assignments: assignments.map((a) => ({
-      court: courts![a.courtIndex].name,
-      players: a.players.map((p) => ({
-        name: p.full_name,
-        gender: p.gender,
-        level: p.level,
-      })),
-    })),
-  });
-
+      courts: assignments.length,
+    });
   } catch (err) {
     await releaseLock();
     throw err;

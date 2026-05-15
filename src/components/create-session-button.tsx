@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { AlgorithmSettings } from "@/components/algorithm-settings";
 
@@ -20,7 +19,6 @@ export function CreateSessionButton({ clubId, clubName, sessionCount, sessionLim
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClient();
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -33,29 +31,30 @@ export function CreateSessionButton({ clubId, clubName, sessionCount, sessionLim
 
     setLoading(true);
 
-    // Check total session limit
     if (sessionCount >= sessionLimit) {
       setError(`Session limit reached (${sessionLimit}). Upgrade to Pro for more.`);
       setLoading(false);
       return;
     }
 
-    const { error: err } = await supabase.from("sessions").insert({
-      club_id: clubId,
-      name: name || "Session",
-      play_time_minutes: playTime,
-      rest_time_minutes: restTime,
-      selection_interval_minutes: selectionInterval,
-      number_of_courts: numberOfCourts,
-      mixed_ratio: mixedRatio,
-      skill_balance: skillBalance,
-      partner_variety: partnerVariety,
-      strict_gender: strictGender,
-      status: "draft",
+    const res = await fetch(`/api/clubs/${clubId}/sessions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: name || "Session",
+        playTime,
+        restTime,
+        selectionInterval,
+        numberOfCourts,
+        mixedRatio,
+        skillBalance,
+        partnerVariety,
+        strictGender,
+      }),
     });
-
-    if (err) {
-      setError(err.message);
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error || "Failed to create session");
       setLoading(false);
       return;
     }

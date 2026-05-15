@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertMemberCapacity, countActiveMembers } from "@/lib/club-plan";
 
 interface ImportRow {
   name: string;
@@ -42,6 +43,18 @@ export async function POST(
 
   if (rows.length > 200) {
     return NextResponse.json({ error: "Maximum 200 members per import" }, { status: 400 });
+  }
+
+  const currentMembers = await countActiveMembers(clubId);
+  const capacity = await assertMemberCapacity(clubId, rows.length);
+  if (!capacity.ok) {
+    return NextResponse.json(
+      {
+        error: capacity.error,
+        memberCount: currentMembers,
+      },
+      { status: 403 }
+    );
   }
 
   // Fetch existing members for duplicate detection

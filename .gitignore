@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 mockups/
+
+# Supabase CLI inspect report output
+/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/

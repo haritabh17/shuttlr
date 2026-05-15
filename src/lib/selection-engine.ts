@@ -1,6 +1,6 @@
 /**
  * Selection Engine — scores and assigns players to courts
- * Keep in sync with src/lib/selection-engine.ts
+ * Keep in sync with supabase/functions/session-tick/selection-engine.ts
  *
  * Factors (all configurable 0-100):
  *   - Fairness: least games played gets priority
