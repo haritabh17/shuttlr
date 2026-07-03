@@ -1,6 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const TERMS_LAST_UPDATED = "2026-02-28T00:00:00Z";
+// Caches a passed terms check so we don't query profiles on every navigation.
+// Value is `${userId}:${TERMS_LAST_UPDATED}`, so it invalidates when the terms
+// change or a different user signs in on the same browser.
+const TERMS_COOKIE = "terms_ok";
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -55,18 +61,29 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check terms acceptance — redirect to /consent if not accepted or outdated
-  const TERMS_LAST_UPDATED = "2026-02-28T00:00:00Z";
-
   if (user && !isPublicRoute) {
-    const { data: profile } = await (supabase as any)
-      .from("profiles")
-      .select("terms_accepted_at")
-      .eq("id", user.id)
-      .single();
+    const termsCookie = request.cookies.get(TERMS_COOKIE)?.value;
+    const expectedCookie = `${user.id}:${TERMS_LAST_UPDATED}`;
 
-    const acceptedAt = profile?.terms_accepted_at;
-    if (!acceptedAt || new Date(acceptedAt) < new Date(TERMS_LAST_UPDATED)) {
-      return NextResponse.redirect(new URL("/consent", request.url));
+    if (termsCookie !== expectedCookie) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("terms_accepted_at")
+        .eq("id", user.id)
+        .single();
+
+      const acceptedAt = profile?.terms_accepted_at;
+      if (!acceptedAt || new Date(acceptedAt) < new Date(TERMS_LAST_UPDATED)) {
+        return NextResponse.redirect(new URL("/consent", request.url));
+      }
+
+      supabaseResponse.cookies.set(TERMS_COOKIE, expectedCookie, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+        path: "/",
+      });
     }
   }
 
@@ -75,6 +92,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Skip /api entirely — API routes authenticate themselves, and running
+    // auth.getUser() there added a Supabase round-trip to every call
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
