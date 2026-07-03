@@ -1,16 +1,20 @@
 // Supabase Edge Function: session-tick
 // Triggered by pg_cron via pg_net every ~10 seconds.
 // Handles phase transitions, player selection, and next-round pre-selection.
+// Selection itself lives in ../_shared/selection-run.ts, shared with the
+// manual-select API route in the Next.js app.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.3";
 import {
-  selectPlayers,
-  extractPairs,
-  type Player,
-  type PartnerPair,
-  type AlgorithmConfig,
-  type CourtAssignment,
-} from "./selection-engine.ts";
+  acquireSessionLock,
+  getMaxRound,
+  releaseSessionLock,
+  runSelection,
+  syncPlayerStatuses,
+  type PushGroup,
+  type SelectionContext,
+  type SupabaseLike,
+} from "../_shared/selection-run.ts";
 
 const MAX_SESSION_MS = 6 * 60 * 60 * 1000; // 6 hours
 
@@ -66,29 +70,23 @@ Deno.serve(async (req) => {
   return Response.json({ processed: sessions.length, transitions: results });
 });
 
-async function processSession(
-  supabase: any,
-  session: any,
-  serviceRoleKey: string,
-): Promise<string | null> {
-  // Auto-end after 6h
+type TickAction =
+  | { type: "auto-end" }
+  | { type: "select"; status: "active" | "upcoming" }
+  | { type: "rest" }
+  | { type: "promote-or-select" };
+
+/**
+ * Pure decision: what (if anything) does this session need right now?
+ * Deliberately ignores `selecting` — the caller handles locking.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function decideAction(session: any): TickAction | null {
   const started = session.started_at
     ? new Date(session.started_at).getTime()
     : null;
   if (started && Date.now() - started >= MAX_SESSION_MS) {
-    await supabase
-      .from("sessions")
-      .update({
-        status: "ended",
-        ended_at: new Date().toISOString(),
-        current_phase: "idle",
-      })
-      .eq("id", session.id);
-
-    await logEvent(supabase, session, "session_auto_ended", {
-      reason: "6h time limit",
-    });
-    return "auto-ended (6h limit)";
+    return { type: "auto-end" };
   }
 
   const phase = session.current_phase || "idle";
@@ -96,17 +94,16 @@ async function processSession(
     ? new Date(session.current_round_started_at).getTime()
     : null;
 
-  // Phase: idle → run selection
   if (phase === "idle" || !roundStarted) {
-    await runSelection(supabase, session, serviceRoleKey, "active");
-    return "idle → selection → playing";
+    return { type: "select", status: "active" };
   }
 
   const elapsed = Date.now() - roundStarted;
 
   if (phase === "playing") {
     const playMs = session.play_time_minutes * 60 * 1000;
-    const selectionMs = (session.selection_interval_minutes ?? session.play_time_minutes) * 60 * 1000;
+    const selectionMs =
+      (session.selection_interval_minutes ?? session.play_time_minutes) * 60 * 1000;
 
     // Mid-round: fire next-round selection at selection_interval
     if (
@@ -114,13 +111,89 @@ async function processSession(
       selectionMs < playMs &&
       elapsed >= selectionMs
     ) {
-      await runSelection(supabase, session, serviceRoleKey, "upcoming");
-      return "mid-round → next round selected";
+      return { type: "select", status: "upcoming" };
     }
 
-    // End of play time
     if (elapsed >= playMs) {
-      if (session.rest_time_minutes > 0) {
+      return session.rest_time_minutes > 0
+        ? { type: "rest" }
+        : { type: "promote-or-select" };
+    }
+  } else if (phase === "resting") {
+    const restMs = session.rest_time_minutes * 60 * 1000;
+    if (elapsed >= restMs) {
+      return { type: "promote-or-select" };
+    }
+  }
+
+  return null;
+}
+
+async function processSession(
+  supabase: SupabaseLike,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  session: any,
+  serviceRoleKey: string,
+): Promise<string | null> {
+  // Idle tick: nothing due, don't touch the row (avoids a write + realtime
+  // event every 10s for every running session)
+  if (!decideAction(session)) return null;
+
+  // Hold the session's `selecting` lock across the whole mutation so an
+  // overlapping cron invocation (or a manager's manual select) can't
+  // double-promote or double-select.
+  if (!(await acquireSessionLock(supabase, session.id))) {
+    console.log(`[tick] ${session.id}: locked by another invocation, skipping`);
+    return null;
+  }
+
+  try {
+    // Re-read and re-decide under the lock: another invocation may have
+    // already performed this transition between our list query and now.
+    const { data: fresh } = await supabase
+      .from("sessions")
+      .select("*")
+      .eq("id", session.id)
+      .single();
+    if (!fresh || fresh.status !== "running") return null;
+
+    const action = decideAction(fresh);
+    if (!action) return null;
+
+    const ctx: SelectionContext = {
+      supabase,
+      sendPush: makePushSender(serviceRoleKey),
+    };
+    const phase = fresh.current_phase || "idle";
+
+    switch (action.type) {
+      case "auto-end": {
+        await supabase
+          .from("sessions")
+          .update({
+            status: "ended",
+            ended_at: new Date().toISOString(),
+            current_phase: "idle",
+          })
+          .eq("id", fresh.id);
+
+        await logEvent(supabase, fresh, "session_auto_ended", {
+          reason: "6h time limit",
+        });
+        return "auto-ended (6h limit)";
+      }
+
+      case "select": {
+        const result = await runSelection(ctx, fresh, action.status);
+        if (!result.ok) {
+          return `${phase} → selection skipped (${result.reason})`;
+        }
+        return action.status === "upcoming"
+          ? "mid-round → next round selected"
+          : `${phase} → selection → playing`;
+      }
+
+      case "rest": {
         await supabase
           .from("sessions")
           .update({
@@ -128,35 +201,33 @@ async function processSession(
             current_round_started_at: new Date().toISOString(),
             next_round_selected: false,
           })
-          .eq("id", session.id);
-
+          .eq("id", fresh.id);
         return "playing → resting";
-      } else {
-        // Promote upcoming → active, or run fresh selection
-        await promoteOrSelect(supabase, session, serviceRoleKey);
-        return "playing → selection → playing";
+      }
+
+      case "promote-or-select": {
+        await promoteOrSelect(ctx, fresh);
+        return `${phase} → selection → playing`;
       }
     }
-  } else if (phase === "resting") {
-    const restMs = session.rest_time_minutes * 60 * 1000;
-    if (elapsed >= restMs) {
-      await promoteOrSelect(supabase, session, serviceRoleKey);
-      return "resting → selection → playing";
-    }
-  }
 
-  return null;
+    return null;
+  } finally {
+    await releaseSessionLock(supabase, session.id);
+  }
 }
 
 /**
  * If upcoming assignments exist, promote them to active.
  * Otherwise run a fresh selection.
+ * Caller must hold the session lock.
  */
 async function promoteOrSelect(
-  supabase: any,
+  ctx: SelectionContext,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   session: any,
-  serviceRoleKey: string,
 ) {
+  const { supabase } = ctx;
   const { data: upcoming } = await supabase
     .from("court_assignments")
     .select("id")
@@ -164,487 +235,63 @@ async function promoteOrSelect(
     .eq("assignment_status", "upcoming")
     .limit(1);
 
-  if (upcoming && upcoming.length > 0) {
-    // Clear current active assignments' players
-    await supabase
-      .from("session_players")
-      .update({ status: "available" })
-      .eq("session_id", session.id)
-      .in("status", ["playing", "selected"]);
-
-    // Promote upcoming → active
-    await supabase
-      .from("court_assignments")
-      .update({ assignment_status: "active" })
-      .eq("session_id", session.id)
-      .eq("assignment_status", "upcoming");
-
-    // Get the upcoming players and mark them as playing
-    const { data: newAssignments } = await supabase
-      .from("court_assignments")
-      .select("user_id")
-      .eq("session_id", session.id)
-      .eq("assignment_status", "active")
-      .eq("round", (await getMaxRound(supabase, session.id)));
-
-    if (newAssignments) {
-      for (const a of newAssignments) {
-        await supabase
-          .from("session_players")
-          .update({
-            status: "playing",
-            play_count: supabase.rpc ? undefined : undefined, // handled below
-            last_played_at: new Date().toISOString(),
-          })
-          .eq("session_id", session.id)
-          .eq("user_id", a.user_id);
-
-        // Increment play count
-        try {
-          await supabase.rpc("increment_play_count", {
-            p_session_id: session.id,
-            p_user_id: a.user_id,
-          });
-        } catch {
-          // Fallback: raw update
-          await supabase
-            .from("session_players")
-            .update({ last_played_at: new Date().toISOString() })
-            .eq("session_id", session.id)
-            .eq("user_id", a.user_id);
-        }
-      }
-    }
-
-    // Update session
-    await supabase
-      .from("sessions")
-      .update({
-        current_round_started_at: new Date().toISOString(),
-        current_phase: "playing",
-        selecting: false,
-        next_round_selected: false,
-      })
-      .eq("id", session.id);
-
-    // Sync statuses to catch any manual swaps
-    await syncPlayerStatuses(supabase, session.id);
-
-    // No push here — players already got "You're up next!" when upcoming was selected
-  } else {
+  if (!upcoming || upcoming.length === 0) {
     // No upcoming — run fresh selection
-    await runSelection(supabase, session, serviceRoleKey, "active");
+    await runSelection(ctx, session, "active");
+    return;
   }
-}
 
-/**
- * Run player selection and create court assignments.
- * assignmentStatus: "active" for current round, "upcoming" for next round preview
- */
-async function runSelection(
-  supabase: any,
-  session: any,
-  serviceRoleKey: string,
-  assignmentStatus: "active" | "upcoming",
-) {
-  // Acquire lock
-  const { data: lockRow } = await supabase
-    .from("sessions")
-    .update({ selecting: true })
-    .eq("id", session.id)
-    .eq("selecting", false)
-    .select("id")
-    .single();
+  // Everyone from the previous round — and one-round sit-outs — returns to the pool
+  await supabase
+    .from("session_players")
+    .update({ status: "available" })
+    .eq("session_id", session.id)
+    .in("status", ["playing", "selected", "sitting_out"]);
 
-  if (!lockRow) { console.log(`[select] Could not acquire lock for ${session.id}`); return; }
-
-  try {
-    // Get session players
-    const { data: sessionPlayers } = await supabase
-      .from("session_players")
-      .select(
-        `id, status, play_count, last_played_at, user_id,
-        user:profiles (id, full_name, gender, level)`,
-      )
-      .eq("session_id", session.id)
-      .in("status", ["available", "playing", "resting"]);
-
-    console.log(`[select] ${session.id}: ${(sessionPlayers ?? []).length} players, assignmentStatus=${assignmentStatus}`);
-    if (!sessionPlayers || sessionPlayers.length === 0) {
-      await supabase
-        .from("sessions")
-        .update({ selecting: false })
-        .eq("id", session.id);
-      return;
-    }
-
-    // Get courts
-    const { data: allCourts } = await supabase
-      .from("courts")
-      .select("*")
-      .eq("club_id", session.club_id)
-      .order("name");
-
-    const courts = (allCourts ?? [])
-      .slice(0, session.number_of_courts)
-      .filter((c: any) => !c.locked);
-
-    console.log(`[select] ${session.id}: ${courts.length} courts (from ${(allCourts ?? []).length} total)`);
-    if (courts.length === 0) {
-      await supabase
-        .from("sessions")
-        .update({ selecting: false })
-        .eq("id", session.id);
-      return;
-    }
-
-    // Get partner history
-    const { data: partnerRows } = await supabase
-      .from("partner_history")
-      .select("player1_id, player2_id, times_paired")
-      .eq("session_id", session.id);
-
-    const partnerHistory: PartnerPair[] = (partnerRows ?? []).map((r: any) => ({
-      player1_id: r.player1_id,
-      player2_id: r.player2_id,
-      times_paired: r.times_paired,
-    }));
-
-    // Fetch club-specific levels from club_members
-    const { data: clubMembers } = await supabase
-      .from("club_members")
-      .select("user_id, invited_level, invited_gender")
-      .eq("club_id", session.club_id)
-      .in("status", ["active", "invited"]);
-
-    const memberLevelMap = new Map<string, number | null>();
-    const memberGenderMap = new Map<string, string | null>();
-    for (const cm of clubMembers ?? []) {
-      memberLevelMap.set(cm.user_id, cm.invited_level);
-      memberGenderMap.set(cm.user_id, cm.invited_gender);
-    }
-
-    // Build player pool (club-specific level takes priority over profile level)
-    const pool: Player[] = sessionPlayers
-      .filter((sp: any) => sp.user)
-      .map((sp: any) => {
-        const clubLevel = memberLevelMap.get(sp.user.id);
-        const clubGender = memberGenderMap.get(sp.user.id);
-        const rawGender = clubGender || sp.user.gender;
-        return {
-        id: sp.user.id,
-        gender:
-          (rawGender === "male" || rawGender === "M")
-            ? "male"
-            : (rawGender === "female" || rawGender === "F")
-              ? "female"
-              : null,
-        level: clubLevel ?? sp.user.level ?? 3,
-        games_played: sp.play_count ?? 0,
-        is_on_court: sp.status === "playing",
-      };
-      });
-
-    // Algorithm config
-    const config: AlgorithmConfig = {
-      mixed_ratio: session.mixed_ratio ?? 50,
-      skill_balance: session.skill_balance ?? 70,
-      partner_variety: session.partner_variety ?? 80,
-      strict_gender: session.strict_gender ?? true,
-    };
-
-
-    // Get cumulative game type history for this session
-    const { data: pastAssignments } = await supabase
-      .from("court_assignments")
-      .select("game_type")
-      .eq("session_id", session.id)
-      .neq("assignment_status", "upcoming");
-
-    const gameTypeHistory = {
-      mixed: (pastAssignments ?? []).filter((a: any) => a.game_type === "mixed").length,
-      doubles: (pastAssignments ?? []).filter((a: any) => a.game_type === "doubles").length,
-    };
-    console.log(`[select] Game type history: ${gameTypeHistory.mixed} mixed, ${gameTypeHistory.doubles} doubles`);
-
-    console.log(`[select] ${session.id}: pool=${pool.length} players, ${courts.length} courts, strict_gender=${config.strict_gender}`);
-    console.log(`[select] Gender breakdown:`, pool.reduce((acc, p) => { acc[p.gender || "null"] = (acc[p.gender || "null"] || 0) + 1; return acc; }, {} as Record<string, number>));
-    const assignments = selectPlayers(pool, courts.length, config, partnerHistory, gameTypeHistory);
-
-    console.log(`[select] ${session.id}: ${assignments.length} court assignments generated`);
-    if (assignments.length === 0) {
-      console.log(`[select] ${session.id}: NO assignments — selection engine returned empty`);
-      await supabase
-        .from("sessions")
-        .update({ selecting: false })
-        .eq("id", session.id);
-      return;
-    }
-
-    // Get round number
-    const currentMax = await getMaxRound(supabase, session.id);
-    const newRound =
-      assignmentStatus === "upcoming" ? currentMax + 1 : currentMax + 1;
-
-    // Write court assignments
-    const assignmentRows: any[] = [];
-    const selectedPlayerIds: string[] = [];
-    const playerNames: string[] = [];
-
-    for (const court of assignments) {
-      const courtRecord = courts[court.court_index];
-      if (!courtRecord) continue;
-
-      const allPlayers = [...court.team_a, ...court.team_b];
-      for (const player of allPlayers) {
-        assignmentRows.push({
-          session_id: session.id,
-          court_id: courtRecord.id,
-          user_id: player.id,
-          round: newRound,
-          assignment_status: assignmentStatus,
-          game_type: court.game_type,
-        });
-        if (!selectedPlayerIds.includes(player.id)) {
-          selectedPlayerIds.push(player.id);
-        }
-      }
-    }
-
-    // Build push context: court name + teammates for each player
-    const nameMap = new Map<string, string>();
-    for (const sp of sessionPlayers) {
-      if (sp.user) nameMap.set(sp.user.id, sp.user.full_name ?? "Player");
-    }
-
-    const playerContexts = new Map<string, PushContext>();
-    for (const court of assignments) {
-      const courtRecord = courts[court.court_index];
-      if (!courtRecord) continue;
-      const allPlayers = [...court.team_a, ...court.team_b];
-      for (const player of allPlayers) {
-        const teammates = allPlayers
-          .filter((p) => p.id !== player.id)
-          .map((p) => nameMap.get(p.id) ?? "Player");
-        playerContexts.set(player.id, {
-          courtName: courtRecord.name,
-          teammates,
-        });
-      }
-    }
-
-    if (assignmentRows.length > 0) {
-      await supabase.from("court_assignments").insert(assignmentRows);
-    }
-
-    // Update partner history
-    const pairs = extractPairs(assignments);
-    for (const pair of pairs) {
-      await supabase.rpc("increment_partner_history", {
-        p_session_id: session.id,
-        p_player1_id: pair.player1_id,
-        p_player2_id: pair.player2_id,
-      });
-    }
-
-    if (assignmentStatus === "active") {
-      // Return current players to available
-      await supabase
-        .from("session_players")
-        .update({ status: "available" })
-        .eq("session_id", session.id)
-        .in("status", ["playing", "selected"]);
-
-      // Restore sitting_out players to available (they sit out one round, then return)
-      await supabase
-        .from("session_players")
-        .update({ status: "available" })
-        .eq("session_id", session.id)
-        .eq("status", "sitting_out");
-
-      // Mark selected players as playing
-      for (const playerId of selectedPlayerIds) {
-        await supabase
-          .from("session_players")
-          .update({
-            status: "playing",
-            play_count:
-              (pool.find((p) => p.id === playerId)?.games_played ?? 0) + 1,
-            last_played_at: new Date().toISOString(),
-          })
-          .eq("session_id", session.id)
-          .eq("user_id", playerId);
-      }
-
-      // Update session state
-      await supabase
-        .from("sessions")
-        .update({
-          current_round_started_at: new Date().toISOString(),
-          current_phase: "playing",
-          selecting: false,
-          next_round_selected: false,
-        })
-        .eq("id", session.id);
-
-      // Sync statuses to catch any manual swaps
-      await syncPlayerStatuses(supabase, session.id);
-
-      // Push notifications
-      await sendPushNotifications(
-        supabase,
-        session,
-        selectedPlayerIds,
-        newRound,
-        serviceRoleKey,
-        false,
-        playerContexts,
-      );
-    } else {
-      // Upcoming: just mark session and release lock
-      await supabase
-        .from("sessions")
-        .update({
-          selecting: false,
-          next_round_selected: true,
-        })
-        .eq("id", session.id);
-
-      // Push "heads up" to upcoming players
-      await sendPushNotifications(
-        supabase,
-        session,
-        selectedPlayerIds,
-        newRound,
-        serviceRoleKey,
-        true,
-        playerContexts,
-      );
-    }
-
-    // Log event
-    await logEvent(supabase, session, "selection_run", {
-      round: newRound,
-      assignment_status: assignmentStatus,
-      courts: assignments.length,
-      players: selectedPlayerIds.length,
-    });
-  } catch (err) {
-    await supabase
-      .from("sessions")
-      .update({ selecting: false })
-      .eq("id", session.id);
-    throw err;
-  }
-}
-
-async function getMaxRound(supabase: any, sessionId: string): Promise<number> {
-  const { data } = await supabase
+  // Promote upcoming → active
+  await supabase
     .from("court_assignments")
-    .select("round")
-    .eq("session_id", sessionId)
-    .order("round", { ascending: false })
-    .limit(1);
+    .update({ assignment_status: "active" })
+    .eq("session_id", session.id)
+    .eq("assignment_status", "upcoming");
 
-  return data?.[0]?.round ?? 0;
-}
-
-/**
- * Ensure session_players status matches court_assignments.
- * Any player in an active assignment for the current round should be "playing".
- * Any player NOT in an active assignment and currently "playing" should be "available".
- */
-async function syncPlayerStatuses(supabase: any, sessionId: string) {
-  const round = await getMaxRound(supabase, sessionId);
-  if (round === 0) return;
-
-  const { data: activeAssignments } = await supabase
+  // Mark the promoted players playing and increment play counts in one call
+  const round = await getMaxRound(supabase, session.id);
+  const { data: promoted } = await supabase
     .from("court_assignments")
     .select("user_id")
-    .eq("session_id", sessionId)
+    .eq("session_id", session.id)
     .eq("assignment_status", "active")
     .eq("round", round);
 
-  if (!activeAssignments) return;
-
-  const onCourtIds = new Set(activeAssignments.map((a: any) => a.user_id));
-
-  // Mark on-court players as "playing" if they aren't already
-  for (const a of activeAssignments) {
-    await supabase
-      .from("session_players")
-      .update({ status: "playing" })
-      .eq("session_id", sessionId)
-      .eq("user_id", a.user_id)
-      .neq("status", "playing");
+  const userIds: string[] = [
+    ...new Set<string>((promoted ?? []).map((a: { user_id: string }) => a.user_id)),
+  ];
+  if (userIds.length > 0) {
+    await supabase.rpc("begin_round_players", {
+      p_session_id: session.id,
+      p_user_ids: userIds,
+    });
   }
 
-  // Mark any "playing" player NOT on court as "available"
-  const { data: playingPlayers } = await supabase
-    .from("session_players")
-    .select("user_id")
-    .eq("session_id", sessionId)
-    .eq("status", "playing");
+  await supabase
+    .from("sessions")
+    .update({
+      current_round_started_at: new Date().toISOString(),
+      current_phase: "playing",
+      next_round_selected: false,
+    })
+    .eq("id", session.id);
 
-  if (playingPlayers) {
-    for (const p of playingPlayers) {
-      if (!onCourtIds.has(p.user_id)) {
-        await supabase
-          .from("session_players")
-          .update({ status: "available" })
-          .eq("session_id", sessionId)
-          .eq("user_id", p.user_id);
-      }
-    }
-  }
+  // Sync statuses to catch any manual swaps
+  await syncPlayerStatuses(supabase, session.id);
+
+  // No push here — players already got "You're up next!" when upcoming was selected
 }
 
-interface PushContext {
-  courtName: string;
-  teammates: string[]; // names of the other 3 players
-}
-
-async function sendPushNotifications(
-  supabase: any,
-  session: any,
-  playerIds: string[],
-  round: number,
-  serviceRoleKey: string,
-  isUpcoming = false,
-  playerContexts?: Map<string, PushContext>,
-) {
-  if (playerIds.length === 0) return;
-
+function makePushSender(serviceRoleKey: string): (group: PushGroup) => Promise<void> {
   const appUrl = Deno.env.get("APP_URL") || "https://beta.shuttlrs.com";
-  const sessionUrl = `/clubs/${session.club_id}/sessions/${session.id}`;
-  const tag = `round-${session.id}-${round}${isUpcoming ? "-upcoming" : ""}`;
-
-  // Batch push: one request per notification group (same title/body/tag)
-  const groups = new Map<string, { userIds: string[]; title: string; body: string }>();
-
-  for (const playerId of playerIds) {
-    const ctx = playerContexts?.get(playerId);
-    let body: string;
-
-    if (ctx) {
-      const others = ctx.teammates.join(", ");
-      body = isUpcoming
-        ? `Round ${round} · ${ctx.courtName}\nWith: ${others}`
-        : `Round ${round} · ${ctx.courtName}\nWith: ${others}`;
-    } else {
-      body = isUpcoming
-        ? `Round ${round} — Get ready!`
-        : `Round ${round} — Head to your court!`;
-    }
-
-    const title = isUpcoming ? "🔜 You're up next!" : "🏸 You're up!";
-    const key = `${title}|${body}|${tag}`;
-    const group = groups.get(key) ?? { userIds: [], title, body };
-    group.userIds.push(playerId);
-    groups.set(key, group);
-  }
-
-  for (const group of groups.values()) {
+  return async (group) => {
     try {
       await fetch(`${appUrl}/api/push/send`, {
         method: "POST",
@@ -656,20 +303,22 @@ async function sendPushNotifications(
           userIds: group.userIds,
           title: group.title,
           body: group.body,
-          tag,
-          url: sessionUrl,
+          tag: group.tag,
+          url: group.url,
         }),
       });
     } catch (err) {
-      console.error(`Push batch failed:`, err);
+      console.error("Push batch failed:", err);
     }
-  }
+  };
 }
 
 async function logEvent(
-  supabase: any,
+  supabase: SupabaseLike,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   session: any,
   eventType: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload: any,
 ) {
   await supabase.from("events").insert({

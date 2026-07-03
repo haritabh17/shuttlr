@@ -1,6 +1,10 @@
 /**
- * Selection Engine — scores and assigns players to courts
- * Keep in sync with supabase/functions/session-tick/selection-engine.ts
+ * Selection Engine — scores and assigns players to courts.
+ *
+ * Single source of truth, imported by both runtimes:
+ *   - supabase/functions/session-tick (Deno edge function)
+ *   - src/app/api/sessions/[sessionId]/select via the `@shared/*` alias
+ * Keep this file free of runtime-specific APIs (no Deno.*, no process.*).
  *
  * Factors (all configurable 0-100):
  *   - Fairness: least games played gets priority
@@ -45,24 +49,22 @@ export function selectPlayers(
   numCourts: number,
   config: AlgorithmConfig,
   partnerHistory: PartnerPair[],
-  gameTypeHistory?: { mixed: number; doubles: number },
 ): CourtAssignment[] {
-  const available = players.filter((p) => true); // all players are candidates
+  if (players.length < 4) return []; // need at least 4 for one court
 
-  if (available.length < 4) return []; // need at least 4 for one court
-
-  // Adjust games_played for currently-on-court players (+1 virtual game)
-  const adjusted = available.map((p) => ({
+  // Adjust games_played for currently-on-court players (+1 virtual game).
+  // Ties get a per-player random key assigned once: a Math.random() comparator
+  // is not a consistent ordering and produces biased shuffles.
+  const adjusted = players.map((p) => ({
     ...p,
     effective_games: p.games_played + (p.is_on_court ? 1 : 0),
+    tie_break: Math.random(),
   }));
 
-  // Sort by effective games (ascending = priority), shuffle ties randomly
-  adjusted.sort((a, b) => {
-    const diff = a.effective_games - b.effective_games;
-    if (diff !== 0) return diff;
-    return Math.random() - 0.5; // break ties randomly
-  });
+  // Sort by effective games (ascending = priority), random within ties
+  adjusted.sort(
+    (a, b) => a.effective_games - b.effective_games || a.tie_break - b.tie_break,
+  );
 
   // Take top N players (may be fewer than needed)
   const actualCourts = Math.min(numCourts, Math.floor(adjusted.length / 4));
@@ -129,18 +131,14 @@ export function selectPlayers(
     bestCombo = { mixed: actualCourts, md: 0, wd: 0, needM: actualCourts * 2, needF: actualCourts * 2, gap: 0, mixedDiff: 0 };
   }
 
-  const plannedMixed = bestCombo.mixed;
-  let needM = bestCombo.needM;
-  let needF = bestCombo.needF;
-
   console.log(`[engine] Optimal combo: ${bestCombo.mixed}mixed + ${bestCombo.md}MD + ${bestCombo.wd}WD (projected gap=${bestCombo.gap.toFixed(2)})`);
 
   // Select the right number of each gender, sorted by priority
-  const selectedM = allMales.slice(0, Math.min(needM, allMales.length));
-  const selectedF = allFemales.slice(0, Math.min(needF, allFemales.length));
+  const selectedM = allMales.slice(0, Math.min(bestCombo.needM, allMales.length));
+  const selectedF = allFemales.slice(0, Math.min(bestCombo.needF, allFemales.length));
   const selectedU = allUnknown.slice(0, Math.max(0, needed - selectedM.length - selectedF.length));
   const selected = [...selectedM, ...selectedF, ...selectedU].slice(0, needed);
-  
+
   // Build game types from optimal combo
   const gameTypes: Array<"mixed" | "doubles"> = [];
   for (let i = 0; i < bestCombo.mixed; i++) gameTypes.push("mixed");
@@ -152,40 +150,6 @@ export function selectPlayers(
 
   // Assign players to courts using scoring
   return assignToCourts(selected, gameTypes, config, pairLookup);
-}
-
-/**
- * Decide which courts are mixed vs doubles based on ratio and gender availability
- */
-function decideGameTypes(
-  numCourts: number,
-  mixedRatio: number,
-  players: Array<Player & { effective_games: number }>,
-  gameTypeHistory?: { mixed: number; doubles: number },
-): Array<"mixed" | "doubles"> {
-  const males = players.filter((p) => p.gender === "male").length;
-  const females = players.filter((p) => p.gender === "female").length;
-
-  // Max possible mixed courts (each needs at least 1M + 1F per team = 2M + 2F)
-  const maxMixed = Math.min(Math.floor(males / 2), Math.floor(females / 2), numCourts);
-
-  // Calculate target based on CUMULATIVE ratio across the session
-  const pastMixed = gameTypeHistory?.mixed ?? 0;
-  const pastDoubles = gameTypeHistory?.doubles ?? 0;
-  const pastTotal = pastMixed + pastDoubles;
-
-  // How many mixed games should there be after this round?
-  const futureTotal = pastTotal + numCourts;
-  const targetTotalMixed = Math.round((mixedRatio / 100) * futureTotal);
-  const targetThisRound = Math.max(0, Math.min(numCourts, targetTotalMixed - pastMixed));
-  const actualMixed = Math.min(targetThisRound, maxMixed);
-
-  console.log(`[engine] decideGameTypes: ${numCourts} courts, mixedRatio=${mixedRatio}, past=${pastMixed}mixed/${pastDoubles}doubles, targetThisRound=${targetThisRound}, actualMixed=${actualMixed}`);
-  const types: Array<"mixed" | "doubles"> = [];
-  for (let i = 0; i < actualMixed; i++) types.push("mixed");
-  for (let i = actualMixed; i < numCourts; i++) types.push("doubles");
-
-  return types;
 }
 
 /**
@@ -217,7 +181,6 @@ function assignToCourts(
   // Separate by gender for mixed courts
   const males = players.filter((p) => p.gender === "male");
   const females = players.filter((p) => p.gender === "female");
-  const unknown = players.filter((p) => p.gender === null);
 
   const assignments: CourtAssignment[] = [];
   const used = new Set<string>();
@@ -246,14 +209,8 @@ function assignToCourts(
     assignments.push({ court_index: i, game_type: "mixed", ...bestCombo });
   }
 
-  // Second pass: fill doubles courts
+  // Second pass: fill doubles courts (unknown-gender players are in this pool)
   const remaining = players.filter((p) => !used.has(p.id));
-  // Add unknowns to remaining pool
-  for (const p of unknown) {
-    if (!used.has(p.id)) {
-      // already in remaining
-    }
-  }
 
   let doublesPool = [...remaining];
 
@@ -315,8 +272,6 @@ function pickBestMixedCombo(
     for (let mj = mi + 1; mj < topM.length; mj++) {
       for (let fi = 0; fi < topF.length - 1; fi++) {
         for (let fj = fi + 1; fj < topF.length; fj++) {
-          const fourPlayers = [topM[mi], topM[mj], topF[fi], topF[fj]];
-
           // Try both team splits: (M1+F1 vs M2+F2) and (M1+F2 vs M2+F1)
           const splits: [Player, Player, Player, Player][] = [
             [topM[mi], topF[fi], topM[mj], topF[fj]],

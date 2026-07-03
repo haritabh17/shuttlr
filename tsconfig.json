@@ -13,13 +13,16 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
+    // The shared selection module uses .ts-suffixed imports (required by Deno)
+    "allowImportingTsExtensions": true,
     "plugins": [
       {
         "name": "next"
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["./supabase/functions/_shared/*"]
     }
   },
   "include": [
